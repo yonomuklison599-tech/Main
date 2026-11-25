@@ -6,7 +6,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-const W = 1080, H = 1920, VO = 0.15;
+const W = 1080, H = 1920, VO = 0.15, GW = 720, GH = 1280;   // 3D calculée en 720p, habillage 2D en 1080p
 const glc = document.getElementById('gl'), out = document.getElementById('out'), g = out.getContext('2d');
 let CAP = [], E = {}, END = 0;
 
@@ -26,17 +26,17 @@ function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.w
 
 // ---------------------------------------------------------------- moteur
 const renderer = new THREE.WebGLRenderer({ canvas: glc, antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+renderer.setPixelRatio(1); renderer.setSize(GW, GH, false);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x8a5a9a, 110, 520);
 const camera = new THREE.PerspectiveCamera(45, W / H, .05, 3000);
-const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), .3, .35, .97); composer.addPass(bloom); composer.addPass(new OutputPass());
+const composer = new EffectComposer(renderer); composer.setSize(GW, GH); composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(GW / 2, GH / 2), .3, .35, .97); composer.addPass(bloom); composer.addPass(new OutputPass());
 const hemi = new THREE.HemisphereLight(0x8fa6e8, 0x20283f, 1.2); scene.add(hemi);
 const camLight = new THREE.PointLight(0xfff0dc, 16, 22, 1.4); scene.add(camLight);
-const key = new THREE.DirectionalLight(0xb8ccff, 1.4); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.0005; key.shadow.normalBias = .03;
+const key = new THREE.DirectionalLight(0xb8ccff, 1.4); key.castShadow = true; key.shadow.mapSize.set(1536, 1536); key.shadow.bias = -.0005; key.shadow.normalBias = .03;
 scene.add(key, key.target);
 const MOON_DIR = V(-.35, .62, -.7).normalize();
 
@@ -517,7 +517,7 @@ window.render = function (t) {
   const s = cam.sh; key.target.position.copy(cam.c); key.position.copy(cam.c).addScaledVector(MOON_DIR, s * 3); const sc = key.shadow.camera; sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s; sc.near = .1; sc.far = s * 8; sc.updateProjectionMatrix();
   camLight.position.copy(cam.p).add(V(0, 1.5, 0)).lerp(cam.c, .25);
   composer.render();
-  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(glc, 0, 0);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingQuality = 'high'; g.drawImage(glc, 0, 0, W, H);
   overlays(t);
   const v = g.createRadialGradient(540, 900, 520, 540, 960, 1300); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(30,0,40,.32)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
   caption(t);

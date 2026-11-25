@@ -21,7 +21,7 @@ function serve(root) { return new Promise(r => { const s = http.createServer((q,
   if (stills) { fs.mkdirSync(out, { recursive: true }); for (const t of stills) { const t0 = Date.now(); const u = await grab(t);
       fs.writeFileSync(path.join(out, `s_${t.toFixed(2).padStart(6, '0')}.jpg`), Buffer.from(u.split(',')[1], 'base64')); console.error(`t=${t} ${Date.now() - t0} ms`); } }
   else {
-    const FPS = 30, n0 = Math.floor(from * FPS), n1 = Math.min(Math.ceil(dur * FPS), Math.ceil(to * FPS));
+    const FPS = args.includes('--fps') ? +args[args.indexOf('--fps') + 1] : 30, n0 = Math.floor(from * FPS), n1 = Math.min(Math.ceil(dur * FPS), Math.ceil(to * FPS));
     const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', out], { stdio: ['pipe', 'inherit', 'inherit'] });
     const T0 = Date.now();
     for (let i = n0; i < n1; i++) { const u = await grab(i / FPS); if (!ff.stdin.write(Buffer.from(u.split(',')[1], 'base64'))) await new Promise(r => ff.stdin.once('drain', r));
