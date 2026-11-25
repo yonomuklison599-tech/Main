@@ -18,3 +18,14 @@ Une histoire courte au format viral « Dans cette ville… », en 3D avec des pe
 - La musique est générée par `mix.py` : aucun droit tiers.
 
 La clé ElevenLabs n'est stockée dans aucun fichier : elle est injectée par le proxy de l'environnement.
+
+## Rendre la vidéo sur Mac (beaucoup plus rapide)
+
+```bash
+git clone https://github.com/yonomuklison599-tech/Main.git
+cd Main && git checkout claude/video-autre-sujet-tqs85w
+./video-ville/rendre_mac.sh
+```
+
+Le script installe ce qui manque (Node, ffmpeg, numpy, Chromium pour Playwright), rend la 3D en 1080p à 30 i/s avec la carte graphique du Mac, mixe le son et produit `video-ville/dans-cette-ville.mp4`.
+Les options de `render.js` sont `--gpu` (carte graphique), `--hd` (3D en 1080p), `--fps 30`, `--from`/`--to` (un morceau) et `--stills t1 t2…` (images de contrôle).

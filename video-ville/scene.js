@@ -6,8 +6,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-const W = 1080, H = 1920, VO = 0.15, GW = 720, GH = 1280;   // 3D calculée en 720p, habillage 2D en 1080p
-const glc = document.getElementById('gl'), out = document.getElementById('out'), g = out.getContext('2d');
+const HD = new URLSearchParams(location.search).has('hd');     // ?hd : 3D en 1080p (sur une machine avec carte graphique)
+const W = 1080, H = 1920, VO = 0.15, GW = HD ? 1080 : 720, GH = HD ? 1920 : 1280;   // sinon 3D en 720p, habillage 2D toujours en 1080p
+const glc = document.getElementById('gl'); glc.width = GW; glc.height = GH; const _o = 0, out = document.getElementById('out'), g = out.getContext('2d');
 let CAP = [], E = {}, END = 0;
 
 // ---------------------------------------------------------------- utilitaires

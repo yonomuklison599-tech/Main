@@ -11,10 +11,11 @@ function serve(root) { return new Promise(r => { const s = http.createServer((q,
   const stills = args.includes('--stills') ? args.slice(args.indexOf('--stills') + 1).map(Number) : null;
   const from = args.includes('--from') ? +args[args.indexOf('--from') + 1] : 0, to = args.includes('--to') ? +args[args.indexOf('--to') + 1] : Infinity;
   const srv = await serve(__dirname); const port = srv.address().port;
-  const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const GPU = args.includes('--gpu'), HD = args.includes('--hd');
+  const browser = await chromium.launch({ args: GPU ? ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=metal'] : ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   page.on('pageerror', e => console.error('PAGE ERROR', e.message)); page.on('console', m => { if (m.type() === 'error') console.error('CONSOLE', m.text()); });
-  await page.goto(`http://127.0.0.1:${port}/scene.html`);
+  await page.goto(`http://127.0.0.1:${port}/scene.html${HD ? '?hd' : ''}`);
   await page.waitForFunction(() => window.__loaded && window.__ready, null, { timeout: 60000 });
   const dur = await page.evaluate(d => window.setTiming(d), timing);
   const grab = t => page.evaluate(t => { window.render(t); return document.getElementById('out').toDataURL('image/jpeg', 0.92); }, t);
