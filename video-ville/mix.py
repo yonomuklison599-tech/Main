@@ -4,11 +4,24 @@ import numpy as np
 SR = 44100; VO = 0.15
 rng = np.random.default_rng(5)
 CAP = json.load(open('timing.json'))['captions']
-w = lambda i: CAP[i]['t'] + VO
-E = dict(choisit=w(7), disparait=w(13), boulangerie=w(26), pain=w(29), four=w(32), minuit=w(47), prie=w(56), voisin=w(63), noe=w(66), jade=w(80), voit=w(90),
-         tour=w(98), quarante=w(112), banquier=w(122), honnete=w(130), evid=w(131), nuit=w(132), rayon=w(135), volets=w(144), jadeFix=w(152), rebondit=w(163), miroir=w(175),
-         renvoyait=w(182), couru=w(192), quarante2=w(194), gardes=w(196), billets=w(202), pousse=w(205), rien=w(219), bas=w(220), crier=w(226), manivelle=w(236), tourne2=w(242),
-         encore=w(244), encore2=w(245), toits=w(246), remonte=w(256), matin2=w(265), plusla=w(267), bankerPJ=w(276), depuis=w(283), regarde=w(293), hier=w(304), deuxieme=w(308), pasLune=w(311))
+import re
+nrm = lambda x: re.sub(r'[.,:;!?…«»"]', '', x.lower())
+def find(word, occ=1):
+    n = 0
+    for c in CAP:
+        if nrm(c['w']) == nrm(word):
+            n += 1
+            if n == occ: return c['t'] + VO
+    raise KeyError(word)
+E = dict(choisit=find('choisit'), disparait=find('disparaît'), gens=find('gens', 2), boulangerie=find('boulangerie'), baguette=find('baguette'), seule=find('seule'),
+         minuit=find('minuit'), prie=find('prie'), voisin=find('voisin'), noe=find('noé'), jade=find('jade'), six=find('six'), zero=find('zéro'), voit=find('voit'),
+         tour=find('tour'), quarante=find('quarante'), panneau=find('panneau'), honnete=find('honnête'), evid=find('évidemment'), nuit=find('nuit', 2), rayon=find('rayon'),
+         volets=find('volets'), yeux=find('yeux'), jadeFix=find('jade', 2), rebondit=find('rebondit'), miroir=find('miroir'), renvoyait=find('renvoyait'), croissants=find('croissants'),
+         couru=find('couru'), quarante2=find('quarante', 2), ascenseur=find("l'ascenseur"), gardes=find('gardes'), billets=find('billets'), pousse=find('miroir', 2), rien=find('rien'),
+         fesses=find('fesses'), bas=find('bas'), crier=find('crier'), manivelle=find('manivelle'), clac1=find('clac'), clac2=find('clac', 2), clac3=find('clac', 3), toits=find('toits'),
+         chat=find('chat'), remonte=find('remonté'), matin2=find('matin', 3), bankerPJ=find('banquier', 4), billet=find('billet'), depuis=find('depuis'), ronfle=find('ronfle'),
+         regarde=find('regarde', 2), hier=find('hier'), rouge=find('rouge'), pasLune=find('venait'))
+E['four'] = E['boulangerie'] + 1.1; E['pain'] = E['boulangerie'] + .2; E['tourne2'] = E['clac1'] - .35; E['encore'] = E['clac2']; E['encore2'] = E['clac3']; E['deuxieme'] = E['rouge'] - .5
 DUR = CAP[-1]['e'] + VO + 1.8; N = int(DUR * SR) + SR
 def decode(p): return np.frombuffer(subprocess.run(['ffmpeg','-v','error','-i',p,'-ac','1','-ar',str(SR),'-f','f32le','-'],capture_output=True,check=True).stdout, dtype=np.float32).copy()
 def lp_fast(x, fc):
@@ -68,7 +81,7 @@ def section(t):
     if t < E['rebondit']: return 'tension'
     if t < E['couru']: return 'revel'
     if t < E['rien']: return 'course'
-    if t < E['crier']: return 'silence'
+    if t < E['fesses']: return 'silence'
     if t < E['remonte'] + .3: return 'climax'
     if t < E['depuis']: return 'matin'
     if t < E['hier']: return 'douce'
@@ -116,7 +129,7 @@ for s in range(int(DUR / (BEAT / 2))):
         put(music, pz(arp[st] - 12, .25), t, .4); put(music, pz(arp[(st + 2) % 8] - 12, .2), t + BEAT / 4, .25 + .2 * k)
         if st % 2 == 0: put(music, bass(nf(ch[0] - 12), .24), t, .5)
     elif sec == 'climax':
-        k = (t - E['crier']) / (E['remonte'] + .3 - E['crier'])
+        k = max(0, (t - E['crier']) / (E['remonte'] + .3 - E['crier']))
         if st % 2 == 0: put(music, K, t, .5 + .5 * k)
         if k > .3: put(music, CL, t, .15 + .4 * k)
         put(music, pz(arp[st] - 12, .25), t, .35); put(music, bl(arp[st], .7), t, .1 + .1 * k)
@@ -137,9 +150,17 @@ for b in range(int(DUR // 2)):
     if sec == 'silence': continue
     chs = (MAJ if sec in ('matin', 'douce') else MIN)[b % 4]
     put(music, pad([nf(m) for m in chs], 2.0, 700 if sec in ('tension', 'fin', 'revel') else 1100), t, .22 if sec != 'climax' else .32)
-gate = np.ones(N); i, j = int(E['rien'] * SR), int(E['crier'] * SR); gate[i:j] = .12
+gate = np.ones(N); i, j = int(E['rien'] * SR), int(E['fesses'] * SR); gate[i:j] = .12
 music *= np.convolve(gate, np.ones(880) / 880, mode='same'); music /= np.max(np.abs(music)) + 1e-9
 
+import glob
+ext = sorted(glob.glob('musique_fond.*'))
+if ext:   # musique fournie : accélérée (+12 %) et bouclée sur toute la durée, coupure gardée sur « Rien. »
+    raw = decode(ext[0]); tmpf = 'tmp_fast.wav'
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', ext[0], '-af', 'atempo=1.12', '-ac', '1', '-ar', str(SR), tmpf], check=True)
+    fast = decode(tmpf); os.remove(tmpf); reps = int(np.ceil(N / len(fast))); m2 = np.tile(fast, reps)[:N]
+    gate2 = np.ones(N); gate2[int(E['rien'] * SR):int(E['fesses'] * SR)] = .15
+    music = m2 * np.convolve(gate2, np.ones(880) / 880, mode='same'); music /= np.max(np.abs(music)) + 1e-9
 voice = decode('voix.wav'); v = np.zeros(N); put(v, voice, VO); voice = v / (np.max(np.abs(v)) + 1e-9) * .9
 envv = np.sqrt(np.convolve(voice ** 2, np.ones(2205) / 2205, mode='same')); envv = np.convolve(envv, np.ones(8820) / 8820, mode='same')
 duck = 1 - .5 * np.clip(envv / (np.percentile(envv[envv > 1e-4], 60) + 1e-9), 0, 1)
@@ -162,26 +183,31 @@ for a, b in [(0, E['matin2'] - .2), (E['regarde'] - .2, DUR)]:
     while t < b: fx('nuit', t, -21, 1, min(11.5, b - t)); t += 11
 fx('oiseaux', E['matin2'], -14, 1, 6)
 # rayons et disparitions
-fx('rayon', E['choisit'] - .4, -8); fx('disparait', E['disparait'], -4); fx('foule', E['disparait'] + 1.1, -14)
-fx('rayon', E['pain'] - .7, -10); fx('disparait', E['four'], -6)
+fx('rayon', E['choisit'] - .4, -8); fx('disparait', E['disparait'], -4); fx('foule', E['gens'] + .2, -13)
+fx('rayon', E['boulangerie'] - .5, -10); fx('disparait', E['four'], -6); fx('pop', E['seule'], -6, .8)
 fx('ding', E['minuit'], -9, .55, 1.5); fx('ding', E['minuit'] + .55, -11, .55, 1.5)
 fx('rayon', E['prie'] - .1, -14, .9)
 fx('suspense', E['nuit'] - .3, -8); fx('rayon', E['rayon'] - .3, -6, .95)
-fx('thud', E['volets'] + .1, -10, 1.3)
+fx('thud', E['volets'] + .1, -10, 1.3); fx('pop', E['yeux'] + .1, -10, .7)
 fx('impact', E['rebondit'] - .05, -3); fx('balayage', E['rebondit'], -8)
-fx('ding2', E['miroir'] + .2, -9, .9)
-fx('escaliers', E['quarante2'] - .1, -6, 1, 3.2); fx('billets', E['billets'] - .4, -7)
-fx('miroir', E['pousse'] + .2, -4); fx('miroir', E['pousse'] + 1.6, -7, .9); fx('impact', E['rien'] - .05, -6, 1.3, 1.5)
+fx('ding2', E['miroir'] + .2, -9, .9); fx('pop', E['croissants'], -8, .75)
+fx('escaliers', E['quarante2'] - .1, -6, 1, 3.2); fx('ding', E['ascenseur'] + .4, -10, 1.3, 1); fx('billets', E['billets'] - .4, -7)
+fx('miroir', E['pousse'] + .2, -4); fx('impact', E['rien'] - .05, -6, 1.3, 1.5); fx('miroir', E['fesses'] + .1, -6, 1.1); fx('pop', E['fesses'] + .9, -8, .6)
 fx('disparait', E['bas'] + .2, -9, .8); fx('suspense', E['crier'] - .5, -9)
-fx('manivelle', E['tourne2'] - .1, -4); fx('manivelle', E['encore'] - .05, -4, 1.06); fx('manivelle', E['encore2'] - .05, -2, 1.12)
-fx('riser', E['toits'] - 1.6, -8); fx('balayage', E['toits'], -4); fx('balayage', E['remonte'] - .3, -4, .85)
-fx('impact', E['remonte'] + .3, 0); fx('disparait', E['remonte'] + .5, -4, .8)
-fx('foule', E['bankerPJ'] + .4, -14, 1.1)
-fx('suspense', E['hier'] - .3, -9); fx('rayon', E['deuxieme'] - .3, -8, .7); fx('impact', E['pasLune'] + .6, -3, .9)
+for c in ('clac1', 'clac2', 'clac3'): fx('manivelle', E[c] - .08, -3, 1 + .06 * int(c[-1]), .6); fx('thud', E[c], -8, 1.4)
+fx('riser', E['toits'] - 1.6, -8); fx('balayage', E['toits'], -4); fx('foule', E['chat'], -9, 2.2, .8); fx('balayage', E['remonte'] - .3, -4, .85)
+fx('impact', E['remonte'] + .6, 0); fx('disparait', E['remonte'] + .8, -4, .8)
+fx('foule', E['bankerPJ'] + .4, -14, 1.1); fx('pop', E['billet'], -6, .9)
+fx('suspense', E['hier'] - .3, -9); fx('rayon', E['rouge'] - .3, -6, .7); fx('impact', E['pasLune'] + .6, -3, .9)
 # souffles sur les coupes
-for k in ['disparait', 'boulangerie', 'minuit', 'noe', 'jade', 'tour', 'banquier', 'nuit', 'jadeFix', 'rebondit', 'renvoyait', 'couru', 'gardes', 'pousse', 'manivelle', 'toits', 'matin2', 'depuis', 'hier']:
+for k in ['disparait', 'boulangerie', 'minuit', 'noe', 'jade', 'tour', 'nuit', 'jadeFix', 'rebondit', 'renvoyait', 'couru', 'gardes', 'pousse', 'manivelle', 'toits', 'matin2', 'depuis', 'hier']:
     fx('whoosh' if hash(k) % 2 else 'whoosh2', E[k] - .12, -19, 1.1, .6)
-for k in ['noe', 'jade', 'quarante', 'honnete', 'miroir', 'quarante2', 'matin2']: fx('pop', E[k] + .35, -11, 1.15)
+for k in ['noe', 'jade', 'six', 'zero', 'quarante', 'panneau', 'miroir', 'quarante2', 'matin2']: fx('pop', E[k] + .2, -11, 1.15)
+# ronflements (synthèse simple)
+def snore(d=1.2):
+    n = int(d * SR); tt_ = np.arange(n) / SR; env = np.sin(np.pi * tt_ / d) ** 2
+    return lp_fast(rng.standard_normal(n) * (1 + .8 * np.sin(2 * np.pi * 28 * tt_)), 500) * env * .5
+for k in range(3): put(sfx, snore(), E['ronfle'] - .1 + k * 1.4, db(-8))
 
 tt = np.arange(N) / SR
 mix = voice + music * duck * db(-13) + sfx * db(-6)

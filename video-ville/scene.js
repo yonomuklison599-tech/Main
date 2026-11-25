@@ -206,6 +206,8 @@ function pose(ch, kind, t, k = 1) {
   if (kind === 'cheer') { arms[0].rotation.z = -2.6; arms[1].rotation.z = 2.6; root.position.y = Math.abs(Math.sin(t * 7)) * .5; }
   if (kind === 'close') { arms[0].rotation.set(-1.6, 0, lerp(.9, 0, k)); arms[1].rotation.set(-1.6, 0, lerp(-.9, 0, k)); }
   if (kind === 'sleep') { legs[0].rotation.x = -1.5; legs[1].rotation.x = -1.5; root.position.y = -1.9; head.rotation.set(.35, 0, .25 + Math.sin(t * 1.5) * .05); arms[0].rotation.x = -.3; arms[1].rotation.x = -.3; }
+  if (kind === 'butt') { root.rotation.x = -.35; arms[0].rotation.z = -.6; arms[1].rotation.z = .6; legs[0].rotation.x = -.5 + s * .1; legs[1].rotation.x = .3; root.position.z = Math.sin(t * 9) * .08; }
+  if (kind === 'hold') { arms[1].rotation.set(-1.2, 0, 0); }
   if (kind === 'roll') { head.rotation.x = -.35; head.rotation.y = Math.sin(t * 3) * .2; arms[0].rotation.z = -.4; arms[1].rotation.z = .4; }
 }
 const noe = makeChar({ shirt: '#e8743b', pants: '#2f4f8f', hair: '#4a2e1a', scale: .82, hairStyle: 'spiky' });
@@ -223,6 +225,20 @@ const bankerPJ = makeChar({ shirt: '#f2a7c3', pants: '#f2a7c3', hair: '#1c1c1c',
 const guards = [0, 1].map(() => makeChar({ shirt: '#1d2b4f', pants: '#16203a', hair: '#2a1a10', hat: 'cap' }));
 const villagers = [['#d95b5b', '#3a3a3a', '#6a4a2a'], ['#5bb0d9', '#2a2a5a', '#2a1a10'], ['#e0c050', '#4a3a2a', '#8a6a3a'], ['#7bc77b', '#3a4a3a', '#1a1a1a'], ['#c07bd0', '#2a2a2a', '#d0b070'], ['#f0a050', '#3a2a5a', '#3a2010']]
   .map(([s, p, h], i) => makeChar({ shirt: s, pants: p, hair: h, hairStyle: i % 3 === 1 ? 'long' : 'short' }));
+const cat = new THREE.Group(); scene.add(cat);
+{ const fur = mat('#f0a040'), dark = mat('#c07020'); const b = box(1.4, .8, .7, fur, .15); b.position.y = .6; cat.add(b);
+  const hd = box(.75, .7, .7, fur, .15); hd.position.set(.85, 1.05, 0); cat.add(hd);
+  for (const z of [-.2, .2]) { const e = new THREE.Mesh(new THREE.ConeGeometry(.14, .3, 4), dark); e.position.set(.85, 1.5, z); cat.add(e); }
+  const tl = box(.18, .9, .18, dark); tl.position.set(-.8, 1, 0); tl.rotation.z = .5; cat.add(tl); cat.userData.tail = tl;
+  for (const [x, z] of [[.5, .25], [.5, -.25], [-.5, .25], [-.5, -.25]]) { const l = box(.22, .45, .22, fur); l.position.set(x, .22, z); cat.add(l); }
+  const fm = new THREE.MeshBasicMaterial({ map: faceTex('smile'), transparent: true }); const f = new THREE.Mesh(new THREE.PlaneGeometry(.66, .66), fm); f.position.set(1.23, 1.05, 0); f.rotation.y = Math.PI / 2; cat.add(f); cat.userData.faceM = fm; }
+cat.position.set(4, .2, -20); cat.rotation.y = -Math.PI / 2;
+const baguette = box(.25, .25, 2.2, mat('#d89a4a'), .1); baker.userData.arms[1].add(baguette); baguette.position.set(0, -2, .8);
+const oneBill = box(.9, .05, .45, mat('#7fc47a')); bankerPJ.userData.arms[1].add(oneBill); oneBill.position.set(0, -2.1, .35); oneBill.rotation.x = 1.2;
+// panneau « Ici, on est honnête » sur la porte de la tour
+{ const tex = canvasTex(512, 256, (c) => { c.fillStyle = '#f6efdc'; c.fillRect(0, 0, 512, 256); c.strokeStyle = '#d4af37'; c.lineWidth = 14; c.strokeRect(8, 8, 496, 240);
+    c.fillStyle = '#2a1c08'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = "900 64px 'Inter Display'"; c.fillText('ICI, ON EST', 256, 96); c.fillText('HONNÊTE', 256, 172); });
+  window.__honestTex = tex; const sgn = box(4, 2, .15, new THREE.MeshStandardMaterial({ map: tex, emissive: new THREE.Color('#ffffff'), emissiveMap: tex, emissiveIntensity: .35 })); sgn.position.set(0, 5.4, 7.15); tower.add(sgn); }
 const ALL_CHARS = [noe, jade, mom, baker, banker, bankerPJ, ...guards, ...villagers];
 
 // intérieur de la cabane (lit, volets)
@@ -278,13 +294,21 @@ function setSparks(c, size, k, a) { const p = sparks.geometry.attributes.positio
 
 // ---------------------------------------------------------------- chronologie (mots)
 const w = i => CAP[i].t + VO, we = i => CAP[i].e + VO;
+const nrm = x => x.toLowerCase().replace(/[.,:;!?…«»"]/g, '');
+function find(word, occ = 1) { let n = 0; for (const c of CAP) if (nrm(c.w) === nrm(word) && ++n === occ) return c.t + VO; throw new Error('mot introuvable: ' + word + ' #' + occ); }
 function buildEvents() {
-  return { choisit: w(7), disparait: w(13), matin: w(15), dedans: w(16), boulangerie: w(26), pain: w(29), four: w(32), boulanger: w(35), pyjama: w(41), carre: w(45),
-    minuit: w(47), ciel: w(53), prie: w(56), voisin: w(63), noe: w(66), cabane: w(69), jade: w(80), peur: w(85), voit: w(90), tour: w(98), quarante: w(112), haut: w(114), antenne: w(118),
-    banquier: w(122), honnete: w(130), evid: w(131), nuit: w(132), rayon: w(135), posee: w(137), maman: w(142), volets: w(144), lumiere: w(147), jadeFix: w(152), noe2: w(157), rebondit: w(163),
-    raison: w(165), antenne2: w(168), miroir: w(175), geant: w(178), tourne: w(179), renvoyait: w(182), couru: w(192), quarante2: w(194), gardes: w(196), banquier2: w(199), billets: w(202),
-    pousse: w(205), rien: w(219), bas: w(220), crier: w(226), lune2: w(231), manivelle: w(236), tourne2: w(242), encore: w(244), encore2: w(245), toits: w(246), place: w(253), remonte: w(256),
-    matin2: w(265), plusla: w(267), carre2: w(272), bankerPJ: w(276), depuis: w(283), cabane2: w(288), regarde: w(293), hier: w(304), deuxieme: w(308), pasLune: w(311) };
+  const e = { choisit: find('choisit'), disparait: find('disparaît'), canape: find('canapé'), gens: find('gens', 2), boulangerie: find('boulangerie'), boulanger: find('boulanger'),
+    baguette: find('baguette'), seule: find('seule'), minuit: find('minuit'), ciel: find('ciel'), prie: find('prie'), voisin: find('voisin'), noe: find('noé'), cabane: find('cabane'),
+    jade: find('jade'), six: find('six'), zero: find('zéro'), voit: find('voit'), tour: find('tour'), quarante: find('quarante'), haut: find('haut'), panneau: find('panneau'),
+    honnete: find('honnête'), evid: find('évidemment'), nuit: find('nuit', 2), rayon: find('rayon'), maman: find('maman'), volets: find('volets'), lumiere: find('lumière'),
+    yeux: find('yeux'), jadeFix: find('jade', 2), noe2: find('noé', 2), rebondit: find('rebondit'), antenne2: find("l'antenne"), miroir: find('miroir'), renvoyait: find('renvoyait'),
+    croissants: find('croissants'), couru: find('couru'), quarante2: find('quarante', 2), pied: find('pied'), ascenseur: find("l'ascenseur"), gardes: find('gardes'),
+    banquier2: find('banquier', 3), billets: find('billets'), pousse: find('miroir', 2), rien: find('rien'), fesses: find('fesses'), bas: find('bas'), voyais: find('voyais'),
+    crier: find('crier'), manivelle: find('manivelle'), clac1: find('clac'), clac2: find('clac', 2), clac3: find('clac', 3), toits: find('toits'), place: find('place'),
+    chat: find('chat'), remonte: find('remonté'), matin2: find('matin', 3), plusla: find('là'), bankerPJ: find('banquier', 4), billet: find('billet'), depuis: find('depuis'),
+    entre: find('entre'), ronfle: find('ronfle'), regarde: find('regarde', 2), hier: find('hier'), rouge: find('rouge'), pasLune: find('venait') };
+  e.pain = e.boulangerie + .2; e.four = e.boulangerie + 1.1; e.pyjama = e.baguette; e.tourne2 = e.clac1 - .35; e.encore = e.clac2; e.encore2 = e.clac3; e.deuxieme = e.rouge - .5;
+  e.banquier = find('banquier'); return e;
 }
 
 // ---------------------------------------------------------------- plans (coupes franches)
@@ -297,42 +321,54 @@ function buildShots() {
   add(w(5) - .05, [fh.x + 26, 22, fh.z - 34], [fh.x, 4, fh.z], 44, [fh.x + 20, 16, fh.z - 26], [fh.x, 4, fh.z], 42, 40);
   add(E.disparait - .1, [fh.x + 12, 6, fh.z - 18], [fh.x, 3.5, fh.z], 46, [fh.x + 10, 5, fh.z - 15], [fh.x, 3.5, fh.z], 44, 30);
   add(E.boulangerie - .1, [-25, 4.5, 4], [-25, 4.2, -13], 46, [-25, 4.2, 2], [-25, 4.2, -13], 44, 30);
+  near(E.gens - .1, V(fh.x, 1.2, fh.z), V(-2.5, 1.2, -5), 44);
   near(E.boulanger - .1, V(-25, 1.3, -13), V(2.2, .9, 5), 40);
+  near(E.seule - .15, V(-24.2, 1.2, -12.2), V(1.4, .5, 2.6), 34);
   add(E.minuit - .1, [-12, 16, -18], [-12, 18, -30], 40, [-12, 17, -22], [-12, 18, -30], 34, 30);
   near(E.prie - .2, V(1, 2.2, -7.5), V(4, .6, 9), 46, .8, 15);
   near(E.voisin - .15, V(-2, 1.9, -7), V(3.5, .8, 8), 44, .8, 15);
   near(E.noe - .1, V(54, 2.1, 4.6), V(-3.6, .3, -1.4), 34);
   add(E.cabane - .1, [34, 7, -4], [58, 2.5, 9], 42, [38, 6, -3], [58, 2.5, 9], 40, 30);
   near(E.jade - .1, V(54.3, 1.7, 6.2), V(-3, .2, -1.6), 34);
+  near(E.zero - .1, V(54.3, 1.6, 6.2), V(-1.6, .1, -.9), 30);
   add(E.voit - .1, [48, .8, 3], [54.3, 3.6, 6.2], 52, [49.5, .8, 3.6], [54.3, 3.6, 6.2], 50, 15);
   add(E.tour - .1, [T.x + 8, 2, T.z + 30], [T.x, 40, T.z], 54, [T.x + 6, 2, T.z + 26], [T.x, 55, T.z], 54, 90);
   add(E.haut - .1, [T.x + 13, TOWER_H + 10, T.z + 18], [T.x, TOWER_H + 8, T.z], 40, [T.x + 11, TOWER_H + 10, T.z + 15], [T.x, TOWER_H + 8, T.z], 38, 25);
   near(E.banquier - .1, V(T.x, 2.5, T.z + 8.8), V(2, .3, 4.2), 36);
+  near(E.panneau - .1, V(T.x, 5.2, T.z + 7.2), V(1.5, -.4, 5), 40);
   near(E.evid - .05, V(54, 2.1, 4.6), V(-3.2, .2, -1.2), 32);
   add(E.nuit - .1, [28, 16, -14], [58, 3, 9], 46, [34, 13, -10], [58, 3, 9], 44, 40);
-  add(E.maman - .1, [200, 3, 205], [200, 2.4, 195], 52, [200, 2.9, 204], [200, 2.4, 195], 50, 15);
+  add(E.maman - .1, [200, 4.6, 205.6], [200, 2.2, 195], 54, [200, 4.4, 205], [200, 2.2, 195], 52, 15);
+  near(E.yeux - .1, V(200, 2.6, 196.5), V(0, .2, -1.6), 44);
   near(E.jadeFix - .1, V(54.3, 1.8, 6), V(-2.4, .5, -2.6), 38);
   add(E.rebondit - .25, [cb.x + 30, 60, 120], [(T.x + cb.x) / 2, 30, (T.z + cb.z) / 2], 52, [cb.x + 26, 56, 110], [(T.x + cb.x) / 2, 32, (T.z + cb.z) / 2], 52, 120);
   add(E.antenne2 - .1, [T.x + 10, TOWER_H + 10, T.z + 14], [T.x, TOWER_H + 8, T.z], 38, [T.x + 8, TOWER_H + 9.5, T.z + 11], [T.x, TOWER_H + 8, T.z], 36, 25);
   add(E.renvoyait - .1, [-20, 70, 80], [10, 10, -20], 48, [-14, 64, 70], [12, 10, -20], 48, 140);
+  near(E.croissants - .25, V(-200, 2.2, 198.8), V(1.6, .5, 3.4), 40);
   add(E.couru - .1, [36, 2, 3.5], [24, 1.6, 0], 48, [22, 2, 3.5], [10, 1.6, 0], 48, 20);
   add(E.quarante2 - .1, [7, 6, 300], [0, 12, 300], 60, [7, 70, 300], [0, 76, 300], 60, 20);
+  near(E.ascenseur - .1, V(T.x, 2.4, T.z + 7.2), V(2, .4, 5.5), 44);
   near(E.gardes - .1, V(T.x, 1.2, T.z + 10), V(3, 1.2, 6), 44, .85, 15);
   near(E.banquier2 - .1, V(-200, 2.2, 198.8), V(2.4, .9, 5.5), 42, .8, 15);
   add(E.pousse - .1, [T.x + 9, TOWER_H + 5, T.z + 9], [T.x + .5, TOWER_H + 4.5, T.z], 44, [T.x + 8, TOWER_H + 4.6, T.z + 8], [T.x + .5, TOWER_H + 4.5, T.z], 42, 20);
+  add(E.fesses - .15, [T.x + 4, TOWER_H + 3.6, T.z + 6], [T.x + .9, TOWER_H + 2.8, T.z + 1.3], 40, [T.x + 3.5, TOWER_H + 3.4, T.z + 5.3], [T.x + .9, TOWER_H + 2.8, T.z + 1.3], 36, 15);
   add(E.bas - .1, [44, 7, -4], [58, 2.5, 9], 42, [46, 6, -3], [58, 2.5, 9], 40, 25);
+  near(E.voyais - .1, V(58, 2.2, 10), V(-4, .6, -6), 42);
   near(E.crier - .1, V(52, 1.8, 3.5), V(-2.6, -.3, -3), 38);
   add(E.manivelle - .1, [T.x + 9, TOWER_H + 4.2, T.z - 3], [T.x + 3, TOWER_H + 2.8, T.z + .6], 40, [T.x + 8, TOWER_H + 4, T.z - 2.5], [T.x + 3, TOWER_H + 2.8, T.z + .6], 36, 15);
-  add(E.encore - .05, [T.x + 13, TOWER_H + 11, T.z + 17], [T.x, TOWER_H + 6, T.z], 44, [T.x + 11, TOWER_H + 10, T.z + 15], [T.x, TOWER_H + 6, T.z], 44, 30);
+  near(E.chat - .2, V(cat.position.x, .9, cat.position.z), V(3.5, 1.6, 4.5), 46);
+  add(E.clac2 - .05, [T.x + 13, TOWER_H + 11, T.z + 17], [T.x, TOWER_H + 6, T.z], 44, [T.x + 11, TOWER_H + 10, T.z + 15], [T.x, TOWER_H + 6, T.z], 44, 30);
   add(E.toits - .1, [60, 55, 70], [20, 5, 0], 50, [40, 50, 60], [5, 5, -10], 50, 140);
-  add(E.remonte - .1, [T.x + 30, 4, T.z + 60], [T.x, 30, T.z], 52, [T.x + 26, 4, T.z + 52], [T.x, 55, T.z], 52, 100);
+  add(E.remonte - .1 + 0, [T.x + 30, 4, T.z + 60], [T.x, 30, T.z], 52, [T.x + 26, 4, T.z + 52], [T.x, 55, T.z], 52, 100);
   add(E.matin2 - .1, [T.x + 20, 14, T.z + 34], [T.x, 2, T.z], 46, [T.x + 16, 11, T.z + 28], [T.x, 2, T.z], 44, 40);
   near(E.bankerPJ - .1, V(T.x, 1.3, T.z), V(2.2, .8, 4.6), 40);
+  near(E.billet - .1, V(T.x + .5, 1, T.z + .6), V(1.2, .5, 2.2), 34);
   add(E.depuis - .1, [196.5, 4.5, 201.5], [196.5, 1.8, 196.5], 46, [196.5, 4.1, 200.8], [196.5, 1.8, 196.5], 44, 15);
+  add(E.ronfle - .2, [196.5, 3.4, 199.8], [196.5, 1.8, 196.5], 44, [196.5, 3.2, 199.3], [196.5, 1.8, 196.5], 40, 15);
   near(E.regarde - .1, V(54, 2.6, 4.6), V(-3, -.6, -2), 40);
   add(E.hier - .1, [51.5, 2.3, 3], [10, 40, -300], 50, [51.5, 2.3, 3.3], [-10, 50, -330], 46, 40);
   add(E.pasLune - .1, [51, 2.2, 2.6], [-40, 60, -340], 34, [51, 2.2, 2.6], [-40, 60, -340], 26, 40);
-  return S;
+  S.sort((a, b) => a.t - b.t); return S;
 }
 function cameraAt(t) {
   let s = SHOTS[0], next = null; for (let i = 0; i < SHOTS.length; i++) if (SHOTS[i].t <= t) { s = SHOTS[i]; next = SHOTS[i + 1]; }
@@ -373,19 +409,20 @@ function update(t) {
   if (t > E.pain - .6 && t < E.four + 1.2) { target = bakery.position.clone(); beamOn = win(t, E.pain - .6, E.four + 1.2, .3); }
   if (t > E.prie && t < E.voisin + 1) { target = V(10, 0, 12); beamOn = win(t, E.prie, E.voisin + 1, .3) * .7; }
   if (t > E.rayon - .2 && t < E.toits) { target = cb.clone(); beamOn = 1; showTrue = t > E.rebondit - .3; }
-  if (t > E.toits && t < E.remonte + 1.6) { const k = seg(t, E.toits, E.remonte - .2); showTrue = true; beamOn = 1 - seg(t, E.remonte + 1, E.remonte + 1.6);
-    target = k < .5 ? V(lerp(cb.x, 0, k * 2), 6, lerp(cb.z, -22, k * 2)) : V(lerp(0, TOWER.x, (k - .5) * 2), lerp(0, TOWER_H * .9, ease((k - .5) * 2)), lerp(-22, TOWER.z + 7, (k - .5) * 2)); }
+  if (t > E.toits - .2 && t < E.remonte + 1.6) { showTrue = true; beamOn = 1 - seg(t, E.remonte + 1, E.remonte + 1.6);
+    const K = [[E.toits - .2, V(cb.x, 6, cb.z)], [E.place, V(10, 6, -6)], [E.chat, V(cat.position.x, .5, cat.position.z)], [E.remonte - .2, V(TOWER.x, 2, TOWER.z + 7)], [E.remonte + .6, V(TOWER.x, TOWER_H * .95, TOWER.z + 7)]];
+    let i = 0; while (i < K.length - 2 && t > K[i + 1][0]) i++; target = K[i][1].clone().lerp(K[i + 1][1], ease(seg(t, K[i][0], K[i + 1][0]))); }
   // le miroir : orientation vers la cible
   if (target) { const dir = target.clone().sub(mirrorW).normalize(), dIn = moonP.clone().sub(mirrorW).normalize(); const n = dir.add(dIn).normalize();
     mirrorPivot.lookAt(mirrorW.clone().add(n)); }
-  mirrorG.userData.crank.rotation.x = t > E.tourne2 ? (t - E.tourne2) * 7 : 0;
+  mirrorG.userData.crank.rotation.x = [E.clac1, E.clac2, E.clac3].reduce((a, c) => a + easeOut(seg(t, c - .1, c + .2)) * 2.1, 0);
   if (target && beamOn > 0) {
     if (showTrue) { setBeam(beamA, moonP.clone().lerp(mirrorW, .93), mirrorW, 2.5, 4.6, beamOn * .55, t); setBeam(beamB, mirrorW, target, 4.4, 5.5, beamOn * .8, t); }
     else { setBeam(beamA, target.clone().add(V(-30, 160, -40)), target, 4, 6.5, beamOn * .85, t); beamB.visible = false; }
     spot.position.set(target.x, (target.y || 0) + .3, target.z); spot.scale.setScalar(6.5); spot.material.opacity = beamOn * .5; beamLight.position.set(target.x, (target.y || 0) + 6, target.z); beamLight.intensity = beamOn * 60;
   } else { beamA.visible = beamB.visible = false; spot.material.opacity = 0; beamLight.intensity = 0; }
   // le second rayon (rouge) au loin
-  const red = seg(t, E.deuxieme - .2, E.deuxieme + .5); if (red > 0) setBeam(beamRed, V(-40, 20, -340), V(-40, 600, -350), 3, 18, red * .9, t); else beamRed.visible = false;
+  const red = seg(t, E.rouge - .3, E.rouge + .3); if (red > 0) setBeam(beamRed, V(-40, 20, -340), V(-40, 600, -350), 3, 18, red * .9, t); else beamRed.visible = false;
   // intérieurs
   const sh = interior.userData.shutters; const ck = ease(seg(t, E.volets - .4, E.volets + .3)); sh[0].rotation.y = lerp(1.6, 0, ck); sh[1].rotation.y = lerp(-1.6, 0, ck);
   interior.userData.slats.forEach(s => s.material.opacity = seg(t, E.lumiere - .2, E.lumiere + .3) * .9); interior.userData.shaft.material.opacity = seg(t, E.lumiere - .2, E.lumiere + .3) * .12;
@@ -396,6 +433,7 @@ function update(t) {
   ALL_CHARS.forEach(c => c.visible = false);
   const S = (a, b) => t >= a && t < b;
   const toTower = Math.atan2(TOWER.x - 54, TOWER.z - 6);
+  if (S(E.gens - .2, E.boulangerie - .1)) [villagers[0], villagers[3]].forEach((v, i) => { place(v, fh.x - 1.5 + i * 2.6, .3, fh.z + .5, Math.PI + .3 - i * .5); setFace(v, 'surprised'); pose(v, 'sitConfused', t + i); });
   if (S(E.boulanger - .2, E.minuit)) { place(baker, -25, .3, -13, .2); setFace(baker, t > E.pyjama ? 'surprised' : 'sleep'); pose(baker, t > E.pyjama ? 'sitConfused' : 'sleep', t); }
   if (S(E.prie - .3, E.voisin - .15)) villagers.forEach((v, i) => { place(v, -3 + i * 1.6, .3, -7.5 + (i % 2) * .8, .1); setFace(v, 'worried'); pose(v, 'pray', t + i); });
   if (S(E.voisin - .15, E.noe - .1)) villagers.forEach((v, i) => { const left = i < 3; place(v, -4 + (i % 3) * 1.6 + (left ? 0 : .8), .3, left ? -7.6 : -5.6, left ? .5 : -2.6); setFace(v, 'smug'); pose(v, 'pointSide', t + i); });
@@ -403,16 +441,19 @@ function update(t) {
   if (S(E.jade - .1, E.tour - .1)) { place(jade, 54.3, .2, 6.2, -Math.PI / 2 - .4); setFace(jade, t > E.voit - .2 ? 'happy' : 'smile'); pose(jade, t > E.voit - .2 ? 'point' : 'idle', t); place(noe, 54.2, .2, 4.4, -Math.PI / 2 - .2); setFace(noe, 'smile'); pose(noe, 'idle', t); }
   if (S(E.banquier - .2, E.evid - .05)) { place(banker, TOWER.x, .2, TOWER.z + 8.8, 0); setFace(banker, 'smug'); pose(banker, 'idle', t); }
   if (S(E.evid - .1, E.nuit - .1)) { place(noe, 54, .2, 4.6, -Math.PI / 2 - .3); setFace(noe, 'side'); pose(noe, 'roll', t); }
-  if (S(E.maman - .2, E.jadeFix - .1)) { place(mom, 200, .2, 196.5, Math.PI); setFace(mom, 'worried'); pose(mom, 'close', t, ease(seg(t, E.volets - .4, E.volets + .3))); place(noe, 198.2, .2, 198.5, Math.PI - .6); setFace(noe, 'worried'); pose(noe, 'idle', t);
+  if (S(E.maman - .2, E.jadeFix - .1)) { place(mom, 200, .2, 196.5, Math.PI); setFace(mom, t > E.yeux ? 'sleep' : 'worried'); pose(mom, 'close', t, ease(seg(t, E.volets - .4, E.volets + .3))); place(noe, 198.2, .2, 198.5, Math.PI - .6); setFace(noe, 'worried'); pose(noe, 'idle', t);
     place(jade, 201.8, .2, 198.5, Math.PI + .6); setFace(jade, 'worried'); pose(jade, 'idle', t); }
   if (S(E.jadeFix - .1, E.rebondit - .25)) { place(jade, 54.3, .2, 6, toTower); setFace(jade, t > E.noe2 ? 'surprised' : 'worried'); pose(jade, t > E.noe2 ? 'point' : 'lookup', t); }
   if (S(E.couru - .1, E.quarante2 - .1)) { const k = seg(t, E.couru - .1, E.quarante2); place(noe, lerp(32, 6, k), .2, 0, -Math.PI / 2); setFace(noe, 'angry'); pose(noe, 'run', t); }
   if (S(E.quarante2 - .1, E.gardes - .1)) { const k = seg(t, E.quarante2 - .1, E.gardes - .1), i = k * 220, a = i * .35; place(noe, Math.cos(a) * 2.8, i * .3 + .2, 300 + Math.sin(a) * 2.8, -a + Math.PI); setFace(noe, 'effort'); pose(noe, 'run', t); }
   if (S(E.gardes - .1, E.banquier2 - .1)) guards.forEach((gd, i) => { place(gd, TOWER.x + (i ? 1.6 : -1.6), 1, TOWER.z + 10, 0); setFace(gd, 'sleep'); pose(gd, 'sleep', t + i); });
-  if (S(E.banquier2 - .1, E.pousse - .1)) { place(banker, -200, .2, 198.6, 0); setFace(banker, 'happy'); pose(banker, 'count', t); }
-  if (S(E.pousse - .1, E.bas - .1)) { place(noe, TOWER.x + .9, TOWER_H + 1.8, TOWER.z + 1.3, -2.5); setFace(noe, t > E.rien ? 'sad' : 'effort'); pose(noe, t > E.rien ? 'idle' : 'push', t); }
+  if (S(E.croissants - .3, E.couru - .1)) { place(banker, -200, .2, 198.6, 0); setFace(banker, 'smug'); pose(banker, 'idle', t); }
+  if (S(E.banquier2 - .1, E.pousse - .1)) { place(banker, -200, .2, 198.6, 0); setFace(banker, t > E.billets + .6 ? 'sleep' : 'happy'); pose(banker, 'count', t); }
+  if (S(E.pousse - .1, E.bas - .1)) { place(noe, TOWER.x + .9, TOWER_H + 1.8, TOWER.z + 1.3, -2.5); const bt = t > E.fesses - .1; if (bt) noe.rotation.y = -2.5 + Math.PI; setFace(noe, t > E.fesses + .9 ? 'sad' : (t > E.rien && !bt ? 'sad' : 'effort')); pose(noe, bt ? 'butt' : (t > E.rien ? 'idle' : 'push'), t); }
+  if (S(E.bas - .1, E.crier - .1)) { place(mom, 58, .2, 10, Math.PI + .4); setFace(mom, 'surprised'); pose(mom, 'idle', t); }
   if (S(E.crier - .1, E.manivelle - .1)) { place(jade, 52, .2, 3.5, toTower); setFace(jade, 'shout'); pose(jade, 'shout', t); }
   if (S(E.manivelle - .1, E.toits - .1)) { place(noe, TOWER.x + 3.1, TOWER_H + 1.8, TOWER.z + 1.4, Math.PI); setFace(noe, t > E.tourne2 ? 'effort' : 'surprised'); pose(noe, t > E.tourne2 ? 'crank' : 'idle', t); }
+  cat.visible = t > E.toits - .5 && t < E.remonte; { const j = t > E.chat ? Math.max(0, Math.sin(seg(t, E.chat, E.chat + .5) * Math.PI)) : 0; cat.position.y = .2 + j * 1.6; cat.userData.faceM.map = faceTex(t > E.chat - .05 ? 'angry' : 'smile'); cat.userData.tail.rotation.z = .5 + Math.sin(t * 6) * .3 + (t > E.chat ? 1 : 0); }
   if (S(E.bankerPJ - .2, E.depuis - .1)) { place(bankerPJ, TOWER.x, .3, TOWER.z, .4); setFace(bankerPJ, 'surprised'); pose(bankerPJ, 'sitConfused', t); }
   if (S(E.depuis - .1, E.regarde - .1)) { place(bankerPJ, 196.5, 1.3, 196.4, 0); setFace(bankerPJ, 'sad'); pose(bankerPJ, 'sleep', t); place(noe, 195.3, 1.3, 196.4, 0); setFace(noe, 'sleep'); pose(noe, 'sleep', t);
     place(jade, 197.7, 1.3, 196.4, 0); setFace(jade, 'sleep'); pose(jade, 'sleep', t + 1); }
@@ -428,21 +469,27 @@ function label(text, x, y, a, opt = {}) {
   g.shadowColor = 'rgba(0,0,0,.45)'; g.shadowBlur = 20; g.shadowOffsetY = 6; g.fillStyle = opt.bg || '#1b1f3a'; g.beginPath(); g.roundRect(-tw / 2, -th / 2, tw, th, th / 2.4); g.fill();
   g.shadowColor = 'transparent'; g.lineWidth = 6; g.strokeStyle = opt.border || '#ffd84a'; g.stroke(); g.fillStyle = opt.color || '#ffd84a'; g.fillText(text, 0, 3); g.restore();
 }
-function zzz(x, y, t) { g.save(); g.font = "900 54px 'Inter Display'"; g.fillStyle = '#fff'; g.strokeStyle = '#1b1f3a'; g.lineWidth = 8; for (let i = 0; i < 3; i++) { const k = (t * .7 + i / 3) % 1; g.globalAlpha = 1 - k; g.strokeText('Z', x + k * 60 + i * 10, y - k * 120); g.fillText('Z', x + k * 60 + i * 10, y - k * 120); } g.restore(); }
+function zzz(x, y, t, txt = 'Z') { g.save(); g.font = "900 54px 'Inter Display'"; g.fillStyle = '#fff'; g.strokeStyle = '#1b1f3a'; g.lineWidth = 8; for (let i = 0; i < 3; i++) { const k = (t * .7 + i / 3) % 1; g.globalAlpha = 1 - k; g.strokeText(txt, x + k * 60 + i * 10, y - k * 120); g.fillText(txt, x + k * 60 + i * 10, y - k * 120); } g.restore(); }
 function overlays(t) {
   const cb = cabin.position;
-  label('412 FOYERS', 540, 300, 0);
-  label('NOÉ', 540, 420, win(t, E.noe + .4, E.cabane - .1), { size: 72 });
-  label('JADE', 540, 420, win(t, E.jade + .2, E.peur), { size: 72, bg: '#4a1d3a', border: '#ff9bd0', color: '#ff9bd0' });
-  label('« LA LUNE, ELLE VOIT TOUT »', 540, 380, win(t, E.voit, E.tour - .1), { size: 46 });
+  label('UNE SEULE.', 540, 400, win(t, E.seule, E.minuit - .1), { size: 70, rot: -.05 });
+  label('6 ANS', 540, 380, win(t, E.six, E.zero), { size: 72, bg: '#4a1d3a', border: '#ff9bd0', color: '#ff9bd0' });
+  label('ZÉRO PEUR', 540, 380, win(t, E.zero, E.voit - .1), { size: 76, bg: '#4a1d3a', border: '#ff9bd0', color: '#ff9bd0', rot: .04 });
+  label('CARTE OR REQUISE', 540, 380, win(t, E.ascenseur, E.gardes - .1), { size: 58, bg: '#2a1f05', border: '#d4af37', color: '#ffd76a' });
+  label('PAS FAN DES CROISSANTS', 540, 380, win(t, E.croissants - .2, E.couru - .1), { size: 50 });
+  [E.clac1, E.clac2, E.clac3].forEach((c, i) => label('CLAC !', 540 + (i - 1) * 180, 420 + i * 70, win(t, c - .05, c + .55, .08), { size: 84 + i * 14, rot: (i - 1) * .12, bg: '#3a0d12', border: '#ffd84a', color: '#ffd84a' }));
+  label('1 BILLET', 540, 400, win(t, E.billet, E.depuis - .1), { size: 76, bg: '#0f3a1c', border: '#7fe08a', color: '#9ff0a8' });
+  label('NOÉ', 540, 420, win(t, E.noe + .2, E.cabane - .1), { size: 72 });
+  label('JADE', 540, 420, win(t, E.jade + .1, E.six - .05), { size: 72, bg: '#4a1d3a', border: '#ff9bd0', color: '#ff9bd0' });
+  label('« LA LUNE, ELLE VOIT TOUT »', 540, 380, win(t, E.voit - .2, E.tour - .1), { size: 46 });
   label('40 ÉTAGES', 540, 380, win(t, E.quarante, E.haut - .1), { size: 76 });
   label('HONNÊTE ?', 540, 380, win(t, E.honnete, E.evid - .05), { size: 70, rot: -.06 });
   label('MIROIR', 540, 380, win(t, E.miroir + .3, E.renvoyait - .1), { size: 76, bg: '#0e2a4a', border: '#9fd0ff', color: '#e8f4ff' });
   label('40 ÉTAGES', 540, 380, win(t, E.quarante2, E.gardes - .1), { size: 76 });
-  label('RIEN.', 540, 400, win(t, E.rien, E.bas - .1), { size: 90, bg: '#3a0d12', border: '#ff4b4b', color: '#ff6b6b' });
-  label('LE LENDEMAIN', 540, 380, win(t, E.matin2, E.carre2), { size: 64 });
+  label('RIEN.', 540, 400, win(t, E.rien, E.fesses - .15), { size: 90, bg: '#3a0d12', border: '#ff4b4b', color: '#ff6b6b' });
+  label('LE LENDEMAIN', 540, 380, win(t, E.matin2, E.plusla + 1), { size: 64 });
   if (t > E.gardes && t < E.banquier2 - .1) for (const gd of guards) { const [x, y] = project(gd.position.clone().add(V(0, 5.5, 0))); zzz(x, y, t); }
-  if (t > E.depuis && t < E.regarde - .1) { const [x, y] = project(V(196.5, 4, 196.6)); zzz(x, y, t); }
+  if (t > E.depuis && t < E.regarde - .1) { const [x, y] = project(V(196.5, 3, 196.6)); zzz(x, y, t, t > E.ronfle - .1 ? 'RONF' : 'Z'); }
   // flash à la disparition de la tour
   const fl = (t > E.remonte + .3 ? .7 * Math.exp(-(t - E.remonte - .3) * 5) : 0) + (t > E.rebondit ? .35 * Math.exp(-(t - E.rebondit) * 7) : 0);
   if (fl > .01) { g.fillStyle = `rgba(220,230,255,${Math.min(.9, fl)})`; g.fillRect(0, 0, W, H); }
