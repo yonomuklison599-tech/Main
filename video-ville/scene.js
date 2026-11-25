@@ -413,7 +413,7 @@ function buildShots() {
   const out = [], ANG = [0, .42, -.38, .22, -.5, .3], DIST = [1, .7, 1.12, .62, .9, .78], LIFT = [0, .25, -.15, .4, .1, -.1];
   S.forEach((sh, i) => {
     const t1 = i + 1 < S.length ? S[i + 1].t : END, d = t1 - sh.t, inside = Math.abs(sh.c0.x) > 150 || sh.c0.z > 250;
-    const n = inside || d < 1.8 ? 1 : Math.min(6, Math.round(d / 1.1));
+    const n = inside || d < 2.2 ? 1 : Math.min(5, Math.round(d / 1.5));
     for (let k = 0; k < n; k++) {
       const a = sh.t + d * k / n, b = sh.t + d * (k + 1) / n, ka = (a - sh.t) / d, kb = (b - sh.t) / d;
       const c0 = sh.c0.clone().lerp(sh.c1, ka), c1 = sh.c0.clone().lerp(sh.c1, kb);
