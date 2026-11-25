@@ -1,0 +1,592 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Pont suspendu</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script src="events.js"></script></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// Rendu déterministe : window.render(t) dessine l'image à l'instant t (secondes vidéo).
+const W = 1080, H = 1920, CY = 860;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+let WORDS = [], GROUPS = [];
+window.setTiming = d => { WORDS = d.words; GROUPS = buildGroups(WORDS); };
+
+// ---------- utilitaires ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = k => (k = clamp(k), k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const easeOut = k => 1 - Math.pow(1 - clamp(k), 3);
+const easeIn = k => Math.pow(clamp(k), 2.2);
+const easeBack = k => { k = clamp(k); const c = 2.2; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
+const win = (t, a, b, f = .25) => seg(t, a, a + f) * (1 - seg(t, b - f, b));
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647, (seed - 1) / 2147483646); }
+function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+
+const C = {
+  grass: '#6cc04a', grassDark: '#4f9a36', dirt: '#a8713f', dirtDark: '#7d5230', sand: '#e2c58b',
+  water: '#27a8cf', waterDeep: '#15607e', wood: '#d79a52', woodDark: '#9c6631', stone: '#a9a49c', stoneDark: '#7a756d',
+  steel: '#e0532f', steelDark: '#a8361c', cable: '#2b2f3a', concrete: '#c9c6bf', concreteDark: '#9b978e',
+  asphalt: '#3b3f48', navy: '#14213d', yellow: '#ffd23f', red: '#ff3b3b', white: '#ffffff',
+  body: '#f0a23c', bodyShade: '#c47b22', hat: '#2f6fe0', hatShade: '#1f4fa8'
+};
+
+// ---------- monde ----------
+const BANK = 500, BED = 440, TOWER_H = 560, ANCH = 860;
+const HANG_X = []; for (let x = -420; x <= 420; x += 70) HANG_X.push(x);
+const LAMP_X = [-360, -240, -120, 0, 120, 240, 360];
+const T = {}; for (const k in EV) T[k] = EV[k] + VO;   // temps vidéo
+
+// ---------- caméra ----------
+const KEYS = [ // [t voix, x, y, zoom, durée transition]
+  [0, 0, -60, 1.0, 0], [3.85, -200, -40, 1.45, .45], [5.2, 0, 10, 1.8, .5], [6.4, 0, 120, 1.45, .3],
+  [7.15, 0, -40, 1.0, .4], [9.45, 0, -60, 1.12, .4], [12.85, 0, 10, 0.95, .5], [15.3, 60, 90, 1.4, .4],
+  [16.9, 0, -230, 0.8, .5], [22.7, -260, -110, 1.3, .45], [23.9, 260, -110, 1.3, 1.1], [25.85, -440, -420, 1.45, .45],
+  [27.3, 0, -240, 0.82, .35], [29.2, 0, -230, 0.54, .5], [34.05, 0, -230, 0.62, .3], [36.2, 0, -150, 0.9, .4],
+  [38.5, 0, -20, 1.2, .6], [40.1, 0, 60, 1.0, .3], [40.95, 0, -180, 0.78, .3], [44.85, 0, -60, 1.05, .4],
+  [46.4, -280, -10, 1.5, .4], [46.8, 280, -10, 1.5, .9], [47.7, 0, -120, 0.95, .4], [49.0, -300, -40, 1.45, .4],
+  [50.5, 300, -60, 1.3, 1.2], [51.7, 0, -40, 1.2, .4], [52.9, 0, -270, 0.62, 1.6]
+];
+const PUNCH = ['pontLabel', 'snap', 'pillarLand', 'half', 'eight', 'thunder', 'sweep', 'tower1', 'tower2', 'cableEnd', 'hangLabel',
+  'lean', 'anchorLand', 'ctaDing', 'collapse', 'stamp', 'trussEnd', 'holds', 'bravo', 'plankLand'];
+const SHAKE = [['snap', 14], ['thunder', 10], ['sweep', 14], ['lean', 12], ['anchorLand', 16], ['collapse', 18], ['pillarLand', 8], ['plankLand', 6]];
+function camera(t) {
+  const tv = t - VO; let cur = KEYS[0], x = cur[1], y = cur[2], z = cur[3];
+  for (let i = 1; i < KEYS.length; i++) {
+    const k = KEYS[i]; if (tv < k[0]) break;
+    const p = ease(seg(tv, k[0], k[0] + k[4]));
+    x = lerp(x, k[1], p); y = lerp(y, k[2], p); z = lerp(z, k[3], p); cur = k;
+  }
+  z *= 1 + .025 * (tv - cur[0]);                     // poussée lente permanente
+  for (const n of PUNCH) if (t > T[n]) z *= 1 + .07 * Math.exp(-(t - T[n]) * 7);
+  let sx = 0, sy = 0;
+  for (const [n, a] of SHAKE) if (t > T[n]) { const e = a * Math.exp(-(t - T[n]) * 6); sx += Math.sin(t * 91) * e; sy += Math.cos(t * 77) * e; }
+  return { x, y, z, sx, sy };
+}
+let CAM;
+const toScreen = (x, y) => [540 + (x - CAM.x) * CAM.z + CAM.sx, CY + (y - CAM.y) * CAM.z + CAM.sy];
+function worldTransform() { g.setTransform(CAM.z, 0, 0, CAM.z, 540 - CAM.x * CAM.z + CAM.sx, CY - CAM.y * CAM.z + CAM.sy); }
+
+// ---------- état du monde ----------
+function waterY(t) { return 170 - 95 * ease(seg(t, T.rise, T.rise + .8)) + 95 * ease(seg(t, T.clear, T.clear + .9)); }
+function storm(t) { return ease(seg(t, T.storm, T.storm + .7)) * (1 - ease(seg(t, T.clear, T.clear + .6))); }
+function sunset(t) { return ease(seg(t, T.bravo - .3, T.bravo + 1.6)); }
+function towerLean(t) { return .19 * ease(seg(t, T.lean, T.leanEnd)) * (1 - ease(seg(t, T.fix, T.fix + .5))); }
+function towerTop(side, t) { const t0 = side < 0 ? T.tower1 : T.tower2, h = TOWER_H * easeBack(seg(t, t0, t0 + .4)), a = -side * towerLean(t);
+  return [side * BANK + h * Math.sin(a), 6 - h * Math.cos(a)]; }
+function cableSag(t) { return -90 + 150 * ease(seg(t, T.lean, T.leanEnd)) * (1 - ease(seg(t, T.fix, T.fix + .5))); }
+function cableAt(x, t) { // y du câble principal entre les tours
+  const [lx, ly] = towerTop(-1, t), [rx, ry] = towerTop(1, t), m = cableSag(t);
+  const u = clamp((x - lx) / (rx - lx)); // courbe de Bézier quadratique ~ parabole
+  const cy = 2 * m - (ly + ry) / 2;
+  return (1 - u) * (1 - u) * ly + 2 * u * (1 - u) * cy + u * u * ry;
+}
+// déformation du tablier suspendu (vent)
+function deckWave(x, t) {
+  if (t < T.wind || t > T.collapse + 3) return [0, 0];
+  const A = 46 * ease(seg(t, T.wobble, T.twist)), tw = 16 * ease(seg(t, T.twist - .4, T.collapse));
+  const dy = A * Math.sin(Math.PI * 2 * (x + BANK) / (2 * BANK)) * Math.sin(t * 7.5);
+  const th = tw * Math.sin(Math.PI * (x + BANK) / (2 * BANK) * 2) * Math.sin(t * 9);
+  return [dy, th];
+}
+
+// ---------- décor ----------
+const clouds = []; { const r = rng(4); for (let i = 0; i < 9; i++) clouds.push({ x: r() * 2400 - 600, y: 120 + r() * 480, s: .6 + r() * .9, v: 8 + r() * 14 }); }
+const trees = []; { const r = rng(8); for (let i = 0; i < 40; i++) { const side = i % 2 ? 1 : -1; trees.push({ x: side * (560 + r() * 1700), s: .7 + r() * .7, h: r() }); } }
+function sky(t) {
+  const st = storm(t), ss = sunset(t);
+  const top = mix3(['#69c3ff', '#2e3c4d', '#ff8a5c'], st, ss), bot = mix3(['#d8f1ff', '#59697a', '#ffd7a1'], st, ss);
+  const sg = g.createLinearGradient(0, 0, 0, H); sg.addColorStop(0, top); sg.addColorStop(.55, bot); sg.addColorStop(1, bot);
+  g.fillStyle = sg; g.fillRect(0, 0, W, H);
+  if (ss > 0) { g.fillStyle = `rgba(255,220,140,${.8 * ss})`; g.beginPath(); g.arc(780, 640 + 120 * (1 - ss), 110, 0, 7); g.fill(); }
+  for (const c of clouds) {
+    const x = ((c.x + t * c.v - CAM.x * .15) % 2400 + 2400) % 2400 - 600, y = c.y;
+    g.fillStyle = st > 0 ? `rgba(${lerp(255, 90, st)},${lerp(255, 100, st)},${lerp(255, 115, st)},.95)` : 'rgba(255,255,255,.92)';
+    for (const [dx, dy, r] of [[0, 0, 60], [55, -25, 70], [115, 0, 55], [55, 15, 60]]) { g.beginPath(); g.arc(x + dx * c.s, y + dy * c.s, r * c.s, 0, 7); g.fill(); }
+  }
+}
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16, n >> 8 & 255, n & 255]; }
+function mixC(a, b, k) { const A = hexToRgb(a), B = hexToRgb(b); return `rgb(${A.map((v, i) => Math.round(lerp(v, B[i], k))).join(',')})`; }
+function mix3(c, st, ss) { const A = hexToRgb(c[0]), B = hexToRgb(c[1]), S = hexToRgb(c[2]);
+  return `rgb(${A.map((v, i) => Math.round(lerp(lerp(v, B[i], st), S[i], ss))).join(',')})`; }
+
+function hills(t) {
+  const st = storm(t), ss = sunset(t);
+  const layers = [[.25, -260, '#9fd88a', 140], [.45, -150, '#7cc66a', 110]];
+  for (const [par, base, col, amp] of layers) {
+    const [, sy] = toScreen(0, base);
+    g.fillStyle = mix3([col, '#4b5a55', '#c9a070'], st * .8, ss * .5);
+    g.beginPath(); g.moveTo(0, H);
+    for (let x = 0; x <= W; x += 20) { const wx = (x - 540) / CAM.z * par + CAM.x * par; g.lineTo(x, sy + (Math.sin(wx * .004) * amp + Math.sin(wx * .011) * amp * .3) * CAM.z * .6 - amp * .5); }
+    g.lineTo(W, H); g.fill();
+  }
+}
+
+function tree(x, s, col) {
+  g.fillStyle = '#7a4f2a'; g.fillRect(x - 7 * s, -70 * s, 14 * s, 70 * s);
+  g.fillStyle = col; g.beginPath(); g.arc(x, -100 * s, 52 * s, 0, 7); g.arc(x - 34 * s, -72 * s, 36 * s, 0, 7); g.arc(x + 34 * s, -72 * s, 36 * s, 0, 7); g.fill();
+}
+
+function ground(t) {
+  const wy = waterY(t), st = storm(t);
+  // eau
+  const wg = g.createLinearGradient(0, wy, 0, BED); wg.addColorStop(0, mixC(C.water, '#3d6b78', st)); wg.addColorStop(1, mixC(C.waterDeep, '#1d3640', st));
+  g.fillStyle = wg; g.fillRect(-BANK - 40, wy, 2 * BANK + 80, BED - wy + 5);
+  // fond sableux
+  g.fillStyle = C.sand; g.fillRect(-BANK - 40, BED, 2 * BANK + 80, 2000);
+  g.fillStyle = 'rgba(0,0,0,.08)'; for (let x = -460; x < 460; x += 60) { g.beginPath(); g.ellipse(x + 20, BED + 10, 22, 7, 0, 0, 7); g.fill(); }
+  // berges
+  for (const s of [-1, 1]) {
+    g.fillStyle = C.dirt; g.beginPath();
+    g.moveTo(s * BANK, 0); g.bezierCurveTo(s * (BANK - 10), 160, s * (BANK - 70), 300, s * (BANK - 90), BED + 4);
+    g.lineTo(s * (BANK - 90), 2200); g.lineTo(s * 4000, 2200); g.lineTo(s * 4000, 0); g.closePath(); g.fill();
+    g.fillStyle = C.dirtDark; for (let i = 0; i < 26; i++) { const r = rng(i + (s > 0 ? 50 : 0)); const x = s * (BANK + 40 + r() * 2200), y = 60 + r() * 700; g.beginPath(); g.ellipse(x, y, 16 + r() * 18, 9 + r() * 8, 0, 0, 7); g.fill(); }
+    g.fillStyle = mixC(C.grass, '#56704a', st); g.fillRect(s > 0 ? BANK : -4000, -4, 4000 - BANK, 26);
+    g.fillStyle = C.grassDark; g.fillRect(s > 0 ? BANK : -4000, 18, 4000 - BANK, 8);
+  }
+  for (const tr of trees) tree(tr.x, tr.s, mixC(tr.h > .5 ? '#3f9b3a' : '#55b146', '#3a5440', st));
+}
+function waterOverlay(t) {
+  const wy = waterY(t), st = storm(t);
+  g.fillStyle = `rgba(30,120,160,${.42})`; g.fillRect(-BANK + 10, wy, 2 * BANK - 20, BED - wy);
+  g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 5; g.beginPath();
+  const amp = 4 + 12 * st;
+  for (let x = -BANK + 20; x <= BANK - 20; x += 12) g.lineTo(x, wy + Math.sin(x * .03 + t * (3 + 4 * st)) * amp);
+  g.stroke();
+}
+
+// ---------- éléments du pont ----------
+function plankA(t) {
+  if (t > T.pillarDrop) return;
+  const land = easeIn(seg(t, T.plankDrop, T.plankLand)), y0 = lerp(-900, 0, land);
+  if (t < T.snap) {
+    const hx = hero(t).x, load = seg(t, T.walk, T.walkEnd) * 10 + 64 * ease(seg(t, T.bend, T.snap));
+    g.fillStyle = C.wood; g.strokeStyle = C.woodDark; g.lineWidth = 5;
+    g.beginPath();
+    for (let x = -BANK - 40; x <= BANK + 40; x += 20) g.lineTo(x, y0 + sagA(x, hx, load) - 22);
+    for (let x = BANK + 40; x >= -BANK - 40; x -= 20) g.lineTo(x, y0 + sagA(x, hx, load));
+    g.closePath(); g.fill(); g.stroke();
+    if (t > T.bend) { g.strokeStyle = 'rgba(90,50,20,.8)'; g.lineWidth = 4; g.beginPath(); const k = seg(t, T.bend + .4, T.snap);
+      g.moveTo(-6, sagA(0, hx, load) - 2); g.lineTo(6, sagA(0, hx, load) - 10 * k); g.lineTo(-4, sagA(0, hx, load) - 18 * k); g.stroke(); }
+  } else {
+    const k = seg(t, T.snap, T.snap + .55), fall = Math.max(0, t - T.snap - .45);
+    for (const s of [-1, 1]) {
+      g.save(); g.translate(s * BANK, 0 + fall * fall * 900); g.rotate(s * 1.25 * easeIn(k) + s * fall * .4);
+      g.fillStyle = C.wood; g.strokeStyle = C.woodDark; g.lineWidth = 5;
+      const x0 = s < 0 ? -40 : -BANK, w = BANK + 40;
+      g.beginPath(); g.rect(s < 0 ? -40 : -BANK, -22, w, 22); g.fill(); g.stroke();
+      // bout éclaté
+      g.beginPath(); const e = s < 0 ? BANK : -BANK; g.moveTo(e, -22); g.lineTo(e + s * 14, -14); g.lineTo(e, -8); g.lineTo(e + s * 10, 0); g.lineTo(e, 0); g.fill();
+      g.restore();
+    }
+  }
+}
+function sagA(x, hx, load) { const u = (x + BANK) / (2 * BANK); if (u < 0 || u > 1) return 0;
+  const m = clamp((hx + BANK) / (2 * BANK), .05, .95); return load * (u < m ? Math.sin(u / m * Math.PI / 2) : Math.sin((1 - u) / (1 - m) * Math.PI / 2)); }
+
+function pillarB(t) {
+  if (t < T.pillarDrop || t > T.clear + 1) return;
+  const land = easeIn(seg(t, T.pillarDrop, T.pillarLand));
+  const sw = ease(seg(t, T.sweep, T.sweepEnd));
+  g.save(); g.translate(0 + sw * 700, lerp(-1100, 0, land) + sw * 160); g.rotate(sw * 1.1);
+  g.fillStyle = C.stone; rr(-40, 0, 80, BED + 10, 6); g.fill();
+  g.fillStyle = C.stoneDark; for (let y = 30; y < BED; y += 60) { g.fillRect(-40, y, 80, 5); g.fillRect((y / 60 % 2 ? -10 : 12), y - 55, 5, 55); }
+  g.fillStyle = '#bdb8b0'; rr(-52, -6, 104, 18, 6); g.fill();
+  g.restore();
+}
+function planksB(t) {
+  if (t < T.planksLand - .35 || t > T.clear + 1) return;
+  const land = easeIn(seg(t, T.planksLand - .35, T.planksLand)), y0 = lerp(-700, -6, land);
+  const sw = seg(t, T.sweep + .1, T.sweep + .6), fall = Math.max(0, t - T.sweep - .5);
+  for (const s of [-1, 1]) {
+    g.save(); g.translate(s * BANK, y0 + fall * fall * 900); g.rotate(s * 1.2 * easeIn(sw));
+    g.fillStyle = C.wood; g.strokeStyle = C.woodDark; g.lineWidth = 5;
+    g.beginPath(); g.rect(s < 0 ? -40 : -BANK - 4, -18, BANK + 44, 18); g.fill(); g.stroke();
+    g.restore();
+  }
+}
+
+function towers(t) {
+  if (t < T.tower1) return;
+  for (const s of [-1, 1]) {
+    const t0 = s < 0 ? T.tower1 : T.tower2; if (t < t0) continue;
+    const h = TOWER_H * easeBack(seg(t, t0, t0 + .4));
+    g.save(); g.translate(s * BANK, 6); g.rotate(-s * towerLean(t));
+    g.fillStyle = C.steel; rr(-26, -h, 52, h, 6); g.fill();
+    g.fillStyle = C.steelDark; g.fillRect(8, -h, 18, h);
+    for (const k of [.3, .62]) { g.fillStyle = C.steelDark; g.fillRect(-34, -h * k - 10, 68, 20); }
+    g.fillStyle = C.steelDark; rr(-34, -h - 18, 68, 26, 8); g.fill();
+    g.restore();
+    // socle béton
+    g.fillStyle = C.concrete; rr(s * BANK - 50, -2, 100, 34, 6); g.fill();
+  }
+}
+function mainCable(t) {
+  if (t < T.cable) return;
+  const p = ease(seg(t, T.cable, T.cableEnd)), [lx] = towerTop(-1, t), [rx] = towerTop(1, t);
+  g.strokeStyle = C.cable; g.lineWidth = 9; g.lineCap = 'round'; g.beginPath();
+  for (let i = 0; i <= 60 * p; i++) { const x = lerp(lx, rx, i / 60); g.lineTo(x, cableAt(x, t)); }
+  g.stroke();
+  // haubans arrière vers les ancrages
+  if (t > T.back) {
+    const q = ease(seg(t, T.back, T.backEnd));
+    for (const s of [-1, 1]) { const [tx, ty] = towerTop(s, t); const ex = s * ANCH, ey = 40;
+      g.beginPath(); g.moveTo(tx, ty); const mx = lerp(tx, ex, q), my = lerp(ty, ey, q) + Math.sin(q * Math.PI) * 30; g.quadraticCurveTo(lerp(tx, mx, .5), lerp(ty, my, .5) + 30 * q, mx, my); g.stroke(); }
+  }
+}
+function anchors(t) {
+  if (t < T.anchor) return;
+  const k = easeIn(seg(t, T.anchor, T.anchorLand));
+  for (const s of [-1, 1]) {
+    const x = s * ANCH, y = lerp(-900, 20, k);
+    g.fillStyle = 'rgba(60,35,15,.5)'; rr(x - 86, 14, 172, 130, 8); g.fill();
+    g.fillStyle = C.concrete; rr(x - 78, y, 156, 116, 10); g.fill();
+    g.fillStyle = C.concreteDark; g.fillRect(x - 78, y + 86, 156, 30);
+    g.fillStyle = 'rgba(0,0,0,.15)'; for (const d of [-40, 0, 40]) { g.beginPath(); g.arc(x + d, y + 40, 5, 0, 7); g.fill(); }
+  }
+}
+
+function deckPieces(t) { // morceaux du tablier qui tombent après l'effondrement
+  const out = [], r = rng(21);
+  for (let x = -330; x < 330; x += 110) out.push({ x0: x, x1: x + 110, vx: (r() - .5) * 120, rot: (r() - .5) * 2.4, d: r() * .25 });
+  return out;
+}
+const PIECES = deckPieces();
+function deckC(t) {
+  if (t < T.deck) return;
+  const slide = t < T.newDeck ? (1 - easeOut(seg(t, T.deck, T.deck + .45))) * -1700 : (1 - easeOut(seg(t, T.newDeck, T.newDeck + .45))) * 1700;
+  const collapsed = t > T.collapse && t < T.newDeck;
+  if (t > T.tacomaEnd && t < T.newDeck) return;
+  const stiff = t > T.newDeck;
+  g.save(); g.translate(slide, 0);
+  // suspentes
+  for (let i = 0; i < HANG_X.length; i++) {
+    const x = HANG_X[i], k = ease(seg(t, T.hangers + i * (T.hangersEnd - T.hangers) / HANG_X.length, T.hangers + (i + 1) * (T.hangersEnd - T.hangers) / HANG_X.length));
+    if (k <= 0) continue;
+    if (collapsed && Math.abs(x) < 330) { // suspentes rompues qui pendent
+      const cy = cableAt(x, t); g.strokeStyle = C.cable; g.lineWidth = 3; g.beginPath(); g.moveTo(x, cy); g.lineTo(x + Math.sin(t * 3 + x) * 10, cy + 90); g.stroke(); continue; }
+    const cy = cableAt(x - slide, t), [dy] = stiff ? [0] : deckWave(x, t);
+    g.strokeStyle = C.cable; g.lineWidth = 3.5; g.beginPath(); g.moveTo(x, cy); g.lineTo(x, lerp(cy, dy - 16, k)); g.stroke();
+  }
+  // poutre treillis
+  if (stiff && t > T.truss) {
+    const p = ease(seg(t, T.truss, T.trussEnd)), xm = lerp(-760, 760, p);
+    g.strokeStyle = C.steelDark; g.lineWidth = 7; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(-760, 58); g.lineTo(xm, 58); g.stroke();
+    g.beginPath(); let up = true; for (let x = -760; x <= xm; x += 60) { g.lineTo(x, up ? 4 : 58); up = !up; } g.stroke();
+    g.lineWidth = 4; for (let x = -760; x <= xm; x += 120) { g.beginPath(); g.moveTo(x, 4); g.lineTo(x, 58); g.stroke(); }
+  }
+  // tablier
+  const vib = stiff ? Math.sin(t * 40) * 1.5 * win(t, T.wind2, T.wind2End) : 0;
+  const drawStrip = (a, b) => {
+    g.fillStyle = '#cfd3da'; g.strokeStyle = '#7d8592'; g.lineWidth = 4; g.beginPath();
+    for (let x = a; x <= b; x += 12) { const [dy, th] = stiff ? [vib, 0] : deckWave(x, t); g.lineTo(x, dy - 16 - th); }
+    for (let x = b; x >= a; x -= 12) { const [dy, th] = stiff ? [vib, 0] : deckWave(x, t); g.lineTo(x, dy + 6 + th); }
+    g.closePath(); g.fill(); g.stroke();
+  };
+  if (!collapsed) drawStrip(-760, 760);
+  else {
+    drawStrip(-760, -330); drawStrip(330, 760);
+    const dt = t - T.collapse;
+    for (const p of PIECES) {
+      const tt = Math.max(0, dt - p.d), y = 450 * tt * tt * 2.2, x = p.vx * tt;
+      if (y > BED) continue;
+      g.save(); g.translate((p.x0 + p.x1) / 2 + x, y); g.rotate(p.rot * tt);
+      g.fillStyle = '#cfd3da'; g.strokeStyle = '#7d8592'; g.lineWidth = 4; g.beginPath(); g.rect(-(p.x1 - p.x0) / 2 + 4, -16, p.x1 - p.x0 - 8, 22); g.fill(); g.stroke(); g.restore();
+    }
+  }
+  // finitions
+  if (stiff) {
+    if (t > T.asphalt) { const xm = lerp(-760, 760, ease(seg(t, T.asphalt, T.asphalt + .6)));
+      g.fillStyle = C.asphalt; g.fillRect(-760, -24 + vib, xm + 760, 10);
+      g.strokeStyle = '#fff'; g.lineWidth = 3; g.setLineDash([24, 20]); g.beginPath(); g.moveTo(-760, -19 + vib); g.lineTo(xm, -19 + vib); g.stroke(); g.setLineDash([]); }
+    if (t > T.rails) { const xm = lerp(-760, 760, ease(seg(t, T.rails, T.rails + .6)));
+      g.strokeStyle = '#4a5160'; g.lineWidth = 4; g.beginPath(); g.moveTo(-760, -56); g.lineTo(xm, -56); g.stroke();
+      g.lineWidth = 3; for (let x = -760; x <= xm; x += 34) { g.beginPath(); g.moveTo(x, -56); g.lineTo(x, -16); g.stroke(); } }
+    for (let i = 0; i < LAMP_X.length; i++) {
+      const t0 = T.lamps + i * (T.lampsEnd - T.lamps) / LAMP_X.length; if (t < t0) continue;
+      const k = easeBack(seg(t, t0, t0 + .25)), x = LAMP_X[i];
+      g.save(); g.translate(x, -16); g.scale(1, k);
+      g.strokeStyle = '#3a3f4a'; g.lineWidth = 6; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -120); g.lineTo(18, -128); g.stroke();
+      g.fillStyle = '#ffe9a8'; rr(10, -134, 26, 10, 4); g.fill(); g.restore();
+      const glow = .35 + .65 * sunset(t);
+      const rg = g.createRadialGradient(x + 23, -140, 2, x + 23, -140, 90); rg.addColorStop(0, `rgba(255,230,150,${.55 * glow * k})`); rg.addColorStop(1, 'rgba(255,230,150,0)');
+      g.fillStyle = rg; g.beginPath(); g.arc(x + 23, -140, 90, 0, 7); g.fill();
+    }
+  }
+  g.restore();
+}
+
+function car(t) {
+  if (t < T.car) return;
+  const x = lerp(-1100, 1100, seg(t, T.car, T.carEnd)), y = -24 + Math.abs(Math.sin(t * 18)) * -1.5;
+  g.save(); g.translate(x, y);
+  g.fillStyle = C.red; rr(-62, -42, 124, 30, 10); g.fill(); rr(-36, -66, 70, 28, 12); g.fill();
+  g.fillStyle = '#bfe6ff'; rr(-28, -60, 26, 18, 4); g.fill(); rr(4, -60, 24, 18, 4); g.fill();
+  g.fillStyle = '#222'; for (const d of [-36, 36]) { g.beginPath(); g.arc(d, -12, 13, 0, 7); g.fill(); }
+  g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(60, -30, 6, 0, 7); g.fill();
+  g.restore();
+}
+
+// ---------- personnage ----------
+function hero(t) {
+  let x = -580, y = 0, rot = 0, face = 1, mood = 'calm', vis = 1, wave = 0, walk = 0, scale = 1;
+  if (t < T.heroIn) return { vis: 0, x, y };
+  scale = easeBack(seg(t, T.heroIn, T.heroIn + .3));
+  if (t < T.snap) {
+    const k = ease(seg(t, T.walk, T.walkEnd)); x = lerp(-580, -20, k); walk = t > T.walk && t < T.walkEnd ? 1 : 0;
+    const load = seg(t, T.walk, T.walkEnd) * 10 + 64 * ease(seg(t, T.bend, T.snap));
+    y = Math.abs(x) < BANK ? sagA(x, x, load) - 22 : 0; if (t > T.bend) mood = 'alarm';
+  } else if (t < T.heroBack) {
+    const dt = t - T.snap; x = -20 + dt * 40; y = -22 + 1300 * dt * dt - 300 * dt; rot = dt * 5; mood = 'alarm';
+    if (y > waterY(t) + 60) vis = 0;
+  } else {
+    scale = easeBack(seg(t, T.heroBack, T.heroBack + .3));
+    x = -580; y = 0;
+    if (t > T.heroMid && t < T.storm) { const k = ease(seg(t, T.heroMid, T.heroMid + .7)); x = lerp(-580, -110, k); y = Math.abs(x) < BANK ? -24 : 0; walk = k > 0 && k < 1 ? 1 : 0; }
+    if (t >= T.storm) { const k = ease(seg(t, T.storm, T.storm + .6)); x = lerp(-110, -640, k); y = Math.abs(x) < BANK ? -24 : 0; face = k < 1 ? -1 : 1; walk = k > 0 && k < 1 ? 1 : 0; }
+    if ([[T.sweep, T.clear], [T.lean, T.fix], [T.twist, T.tacoma]].some(([a, b]) => t > a && t < b)) mood = 'alarm';
+    if (t > T.cta && t < T.ctaOut) wave = 1;
+    if (t > T.holds && t < T.holds + .8) mood = 'happy';
+    if (t > T.bravo) { mood = 'happy'; const k = ease(seg(t, T.bravo + .1, T.bravo + 1.2)); x = lerp(-640, -200, k); y = Math.abs(x) < 760 && k > .2 ? -24 : 0;
+      y -= Math.max(0, Math.sin((t - T.bravo) * 7)) * 50 * seg(t, T.bravo + 1.2, T.bravo + 1.3); walk = k > 0 && k < 1 ? 1 : 0; wave = 1; }
+  }
+  return { x, y, rot, face, mood, vis, wave, walk, scale };
+}
+function drawHero(h, t) {
+  if (!h.vis) return;
+  g.save(); g.translate(h.x, h.y); g.scale(.62 * h.scale, .62 * h.scale);
+  g.translate(0, -100); g.rotate(h.rot); g.translate(0, 100);
+  const bw = 104, bh = 176, f = h.face, step = h.walk ? Math.sin(t * 18) : 0;
+  g.fillStyle = C.bodyShade; g.fillRect(-28, -14 + Math.max(0, step) * -8, 22, 24); g.fillRect(6, -14 + Math.max(0, -step) * -8, 22, 24);
+  const bg = g.createLinearGradient(-bw / 2, 0, bw / 2, 0); bg.addColorStop(0, C.bodyShade); bg.addColorStop(.4, C.body); bg.addColorStop(1, C.bodyShade);
+  g.fillStyle = bg; rr(-bw / 2, -bh - 10 + Math.abs(step) * -4, bw, bh, [50, 50, 28, 28]); g.fill();
+  // casque de chantier
+  g.fillStyle = C.yellow; g.beginPath(); g.ellipse(0, -bh - 4, bw / 2 + 4, 42, 0, Math.PI, 0); g.fill();
+  g.fillStyle = '#e0b020'; rr(-bw / 2 - 12, -bh - 10, bw + 24, 14, 7); g.fill(); g.fillRect(-6, -bh - 44, 12, 36);
+  const ex = f * 14;
+  g.fillStyle = '#2a1d14';
+  if (h.mood === 'happy') { g.strokeStyle = '#2a1d14'; g.lineWidth = 6; for (const d of [-16, 16]) { g.beginPath(); g.arc(ex + d, -bh + 50, 8, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+    g.beginPath(); g.arc(ex, -bh + 74, 14, .1 * Math.PI, .9 * Math.PI); g.stroke(); }
+  else { const r = h.mood === 'alarm' ? 9 : 7; for (const d of [-16, 16]) { g.beginPath(); g.arc(ex + d, -bh + 46, r, 0, 7); g.fill(); }
+    if (h.mood === 'alarm') { g.beginPath(); g.ellipse(ex, -bh + 76, 8, 11, 0, 0, 7); g.fill(); } }
+  for (const s of [-1, 1]) {
+    g.save(); g.translate(s * (bw / 2 - 4), -bh + 100);
+    let a = s * .45 + Math.sin(t * 3 + s) * .06; if (h.wave && s === 1) a = Math.PI * .85 + Math.sin(t * 14) * .35; if (h.mood === 'alarm') a = s * 2.4;
+    g.rotate(a); g.strokeStyle = C.bodyShade; g.lineWidth = 12; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 46); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 54, 13, 0, 7); g.fill(); g.restore();
+  }
+  g.restore();
+}
+
+// ---------- particules ----------
+function splashAt(t, t0, x, n, power) {
+  const k = t - t0; if (k < 0 || k > 1.2) return; const r = rng(Math.round(t0 * 100) + n), wy = waterY(t);
+  for (let i = 0; i < n; i++) { const vx = (r() - .5) * 700 * power, vy = -(400 + r() * 700) * power;
+    const px = x + vx * k, py = wy + vy * k + 1400 * k * k; if (py > wy + 5) continue;
+    g.fillStyle = `rgba(220,245,255,${.95 * (1 - k / 1.2)})`; g.beginPath(); g.arc(px, py, 6 + r() * 9, 0, 7); g.fill(); }
+}
+function rain(t) {
+  const st = storm(t); if (st <= 0) return; const r = rng(5);
+  g.strokeStyle = `rgba(200,220,240,${.45 * st})`; g.lineWidth = 3;
+  for (let i = 0; i < 160; i++) { const x = (r() * W + t * 260) % W, y = (r() * H + t * 1900 * (0.8 + r() * .4)) % H; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 14, y + 46); g.stroke(); }
+}
+function currentArrows(t) {
+  const a = win(t, T.current, T.clear + .3, .3); if (a <= 0) return;
+  g.save(); g.globalAlpha = a; g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 8; g.lineCap = 'round'; g.lineJoin = 'round';
+  for (let i = 0; i < 5; i++) { const y = waterY(t) + 50 + i * 60, x = ((t * 420 + i * 230) % 1100) - 550;
+    g.beginPath(); g.moveTo(x - 70, y); g.lineTo(x + 30, y); g.moveTo(x + 10, y - 16); g.lineTo(x + 30, y); g.lineTo(x + 10, y + 16); g.stroke(); }
+  g.restore();
+}
+function windStreaks(t) {
+  const a = Math.max(win(t, T.wind, T.collapse + .5, .4), win(t, T.wind2, T.wind2End, .3)); if (a <= 0) return;
+  const r = rng(13); g.save(); g.globalAlpha = a; g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineCap = 'round';
+  for (let i = 0; i < 26; i++) { const y = -520 + r() * 640, sp = 900 + r() * 700, len = 120 + r() * 200, x = ((t * sp + r() * 4000) % 2600) - 1300;
+    g.lineWidth = 3 + r() * 4; g.beginPath(); g.moveTo(x, y); g.bezierCurveTo(x + len * .3, y - 12, x + len * .6, y + 12, x + len, y); g.stroke(); }
+  g.restore();
+}
+
+// ---------- surimpressions écran ----------
+function pill(txt, x, y, a, opts = {}) {
+  if (a <= 0) return; const size = opts.size || 42;
+  g.save(); g.globalAlpha = clamp(a); g.translate(x, y); const s = easeBack(clamp(a * 1.4)); g.scale(s, s);
+  g.font = `900 ${size}px 'Inter Display'`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const w = g.measureText(txt).width + size * 1.1, h = size * 1.55;
+  g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 18; g.shadowOffsetY = 6;
+  g.fillStyle = opts.bg || C.navy; rr(-w / 2, -h / 2, w, h, h / 2.6); g.fill(); g.shadowColor = 'transparent';
+  if (opts.border) { g.strokeStyle = opts.border; g.lineWidth = 5; g.stroke(); }
+  g.fillStyle = opts.color || '#fff'; g.fillText(txt, 0, 2); g.restore();
+}
+function bigStat(txt, x, y, a, size = 170, color = C.yellow, rot = -.06) {
+  if (a <= 0) return;
+  g.save(); g.globalAlpha = clamp(a * 2); g.translate(x, y); g.rotate(rot); const s = easeBack(clamp(a * 1.6)); g.scale(s, s);
+  g.font = `900 ${size}px 'Inter Display'`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  g.lineWidth = size * .16; g.strokeStyle = C.navy; g.shadowColor = 'rgba(0,0,0,.4)'; g.shadowBlur = 24; g.shadowOffsetY = 10;
+  g.strokeText(txt, 0, 0); g.shadowColor = 'transparent'; g.fillStyle = color; g.fillText(txt, 0, 0); g.restore();
+}
+function redX(t, t0) {
+  const k = t - t0; if (k < 0 || k > 1.1) return; const a = 1 - seg(k, .8, 1.1), s = easeBack(seg(k, 0, .22));
+  g.save(); g.globalAlpha = a; g.translate(540, 620); g.scale(s, s); g.rotate(-.05);
+  g.lineCap = 'round'; g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 20;
+  for (const [w, c] of [[78, C.navy], [52, C.red]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(-130, -130); g.lineTo(130, 130); g.moveTo(130, -130); g.lineTo(-130, 130); g.stroke(); }
+  g.restore();
+}
+function check(t, t0, x, y) {
+  const k = t - t0; if (k < 0 || k > 1.3) return; const a = 1 - seg(k, 1, 1.3), s = easeBack(seg(k, 0, .25));
+  g.save(); g.globalAlpha = a; g.translate(x, y); g.scale(s, s);
+  g.fillStyle = '#22c55e'; g.beginPath(); g.arc(0, 0, 70, 0, 7); g.fill(); g.strokeStyle = C.navy; g.lineWidth = 8; g.stroke();
+  g.strokeStyle = '#fff'; g.lineWidth = 16; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(-30, 2); g.lineTo(-8, 26); g.lineTo(34, -24); g.stroke(); g.restore();
+}
+function dimLine(x0, x1, y, a, label) {
+  if (a <= 0) return; const [sx0, sy] = toScreen(x0, y), [sx1] = toScreen(x1, y);
+  g.save(); g.globalAlpha = a; g.strokeStyle = '#fff'; g.lineWidth = 5; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(sx0, sy); g.lineTo(sx1, sy); g.moveTo(sx0, sy - 18); g.lineTo(sx0, sy + 18); g.moveTo(sx1, sy - 18); g.lineTo(sx1, sy + 18); g.stroke();
+  g.restore(); if (label) pill(label, (sx0 + sx1) / 2, sy - 50, a, { size: 34 });
+}
+function arrowScreen(x0, y0, x1, y1, a, col = C.yellow) {
+  if (a <= 0) return; g.save(); g.globalAlpha = a; g.lineCap = 'round'; g.lineJoin = 'round';
+  const ang = Math.atan2(y1 - y0, x1 - x0);
+  for (const [w, c] of [[22, C.navy], [12, col]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1);
+    g.moveTo(x1 - 34 * Math.cos(ang - .5), y1 - 34 * Math.sin(ang - .5)); g.lineTo(x1, y1); g.lineTo(x1 - 34 * Math.cos(ang + .5), y1 - 34 * Math.sin(ang + .5)); g.stroke(); }
+  g.restore();
+}
+
+function overlays(t) {
+  // étiquette "PONT ?"
+  { const [x, y] = toScreen(0, -90); pill('PONT ?', x, y, win(t, T.pontLabel, T.walk + .2)); }
+  // portée
+  { const a = win(t, T.span, T.storm, .2); const h = seg(t, T.half, T.half + .3);
+    if (h <= 0) dimLine(-BANK, BANK, -110, a, 'PORTÉE');
+    else { dimLine(-BANK, -8, -110, a, null); dimLine(8, BANK, -110, a, null); const [x, y] = toScreen(0, -110); bigStat('÷2', x, y - 130, a * h * (1 - seg(t, T.eight - .1, T.eight + .1)), 150); }
+    bigStat('FLEXION ÷8', 540, 520, win(t, T.eight, T.storm + .1, .2), 120, C.yellow, -.04); }
+  // câble / suspentes / ancrage
+  { const [x, y] = toScreen(0, cableAt(0, t) - 70); pill("CÂBLE D'ACIER", x, y, win(t, T.cableLabel, T.deck)); }
+  { const [x, y] = toScreen(0, -330); pill('SUSPENTES', x, y, win(t, T.hangLabel, T.forces + .4)); }
+  { const a = win(t, T.forces, T.fix, .2); for (const s of [-1, 1]) { const [tx, ty] = towerTop(s, t); const [x, y] = toScreen(tx, ty);
+      arrowScreen(x - s * 20, y + 10, x - s * 150, y + 70, a, C.red); }
+    pill('TRACTION', 540, 400, win(t, T.forces, T.lean + .2, .2), { bg: C.red }); }
+  { const a = win(t, T.anchorLabel, T.cta, .2); pill('ANCRAGE', 540, 460, a);
+    const b = win(t, T.backEnd, T.cta, .2); for (const s of [-1, 1]) { const [tx, ty] = towerTop(s, t); const [x0, y0] = toScreen(lerp(tx, s * ANCH, .35), lerp(ty, 40, .35)), [x1, y1] = toScreen(lerp(tx, s * ANCH, .75), lerp(ty, 40, .75));
+      arrowScreen(x0, y0, x1, y1, b * (.6 + .4 * Math.sin(t * 8))); } }
+  // CTA abonnement
+  { const a = win(t, T.cta, T.ctaOut, .25); if (a > 0) {
+      const y = lerp(1250, 470, easeBack(seg(t, T.cta, T.cta + .45))) + (1 - seg(t, T.ctaOut - .25, T.ctaOut)) * 0;
+      const pulse = 1 + .08 * Math.exp(-Math.max(0, t - T.ctaDing) * 6) * (t > T.ctaDing ? 1 : 0);
+      g.save(); g.globalAlpha = a; g.translate(540, y); g.scale(pulse, pulse);
+      g.fillStyle = '#1f8a4c'; g.strokeStyle = '#fff'; g.lineWidth = 8; rr(-300, -95, 600, 190, 26); g.fill(); g.stroke();
+      g.fillStyle = '#6b6f78'; g.fillRect(-12, 95, 24, 300);
+      g.font = "900 88px 'Inter Display'"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText('ABONNE-TOI', 0, 4);
+      g.restore(); } }
+  // Tacoma
+  { const a = win(t, T.stamp, T.tacomaEnd, .2); if (a > 0) bigStat('TACOMA · 1940', 540, 430, a, 96, '#ffffff', -.08); }
+  { const [x, y] = toScreen(0, 110); pill('POUTRE EN TREILLIS', x, y, win(t, T.trussLabel, T.wind2End)); }
+  check(t, T.holds, 540, 470);
+  { pill('GARDE-CORPS', 540, 460, win(t, T.rails, T.lamps, .2), { size: 34 }); }
+  { pill('LAMPADAIRES', 540, 460, win(t, T.lamps, T.asphalt, .2), { size: 34 }); }
+  { pill('BITUME', 540, 460, win(t, T.asphalt, T.bravo, .2), { size: 34 }); }
+  for (const n of ['snap', 'sweep', 'collapse']) redX(t, T[n]);
+  redX(t, T.lean + .25);
+}
+
+// barre de progression
+function progressValue(t) {
+  let v = 0, prev = 0, tk = 0;
+  for (const [tv, val] of PROGRESS) { const tt = tv + VO; if (t >= tt) { prev = v; v = val; tk = tt; } }
+  const k = ease(seg(t, tk, tk + .45)); return { v: lerp(prev, v, k), down: v < prev && t < tk + .9 };
+}
+function progressBar(t) {
+  const { v, down } = progressValue(t), x = 130, y = 150, w = 820, h = 30;
+  g.save(); g.font = "900 40px 'Inter Display'"; g.textBaseline = 'middle';
+  g.fillStyle = 'rgba(20,33,61,.82)'; rr(x - 28, y - 70, w + 56, 128, 30); g.fill();
+  g.fillStyle = '#fff'; g.textAlign = 'left'; g.fillText('🌉 TON PONT', x, y - 28);
+  g.textAlign = 'right'; g.fillStyle = down ? C.red : C.yellow; g.fillText(`${Math.round(v)} %`, x + w, y - 28);
+  g.fillStyle = 'rgba(255,255,255,.18)'; rr(x, y + 4, w, h, h / 2); g.fill();
+  if (v > .5) { g.fillStyle = down ? C.red : C.yellow; rr(x, y + 4, Math.max(h, w * v / 100), h, h / 2); g.fill(); }
+  g.restore();
+}
+
+// sous-titres karaoké (groupes de 1 à 3 mots, mot actif en jaune)
+function buildGroups(words) {
+  const gs = []; let cur = [];
+  words.forEach((w, i) => {
+    const prev = words[i - 1];
+    if (cur.length && (cur.length >= 3 || w.s !== prev.s || w.t - (prev.t + prev.d) > .18 || /^(mais|alors|et|donc|que)$/i.test(w.w))) { gs.push(cur); cur = []; }
+    cur.push({ ...w, i });
+  });
+  if (cur.length) gs.push(cur); return gs;
+}
+function captions(t) {
+  const tv = t - VO; let gi = -1;
+  for (let i = 0; i < GROUPS.length; i++) if (GROUPS[i][0].t <= tv) gi = i;
+  if (gi < 0) return; const gr = GROUPS[gi], last = gr[gr.length - 1], next = GROUPS[gi + 1];
+  if (tv > (next ? next[0].t : last.t + last.d + .6)) return;
+  if (!next && tv > last.t + last.d + .6) return;
+  let size = 92; g.save(); g.font = `900 ${size}px 'Inter Display'`;
+  const txts = gr.map(w => w.w.toUpperCase()); let sp = size * .45;
+  let total = txts.reduce((s, x) => s + g.measureText(x).width, 0) + sp * (txts.length - 1);
+  while (total > 900) { size -= 4; sp = size * .45; g.font = `900 ${size}px 'Inter Display'`; total = txts.reduce((s, x) => s + g.measureText(x).width, 0) + sp * (txts.length - 1); }
+  const k = easeBack(seg(tv, gr[0].t, gr[0].t + .16)); g.translate(540, 1390); g.scale(lerp(.7, 1, k), lerp(.7, 1, k));
+  g.textBaseline = 'middle'; g.textAlign = 'left'; g.lineJoin = 'round';
+  let x = -total / 2;
+  gr.forEach((w, j) => {
+    const active = tv >= w.t && (j === gr.length - 1 || tv < gr[j + 1].t), wd = g.measureText(txts[j]).width;
+    g.save(); if (active) { g.translate(x + wd / 2, 0); g.scale(1.1, 1.1); g.translate(-(x + wd / 2), 0); }
+    g.lineWidth = size * .2; g.strokeStyle = C.navy; g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 20; g.shadowOffsetY = 8;
+    g.strokeText(txts[j], x, 0); g.shadowColor = 'transparent';
+    g.fillStyle = active ? C.yellow : (tv >= w.t ? '#fff' : 'rgba(255,255,255,.92)'); g.fillText(txts[j], x, 0); g.restore();
+    x += wd + sp;
+  });
+  g.restore();
+}
+
+function confetti(t) {
+  const k = t - T.bravo; if (k < 0) return; const r = rng(77), cols = [C.yellow, C.red, '#22c55e', '#3b82f6', '#fff'];
+  for (let i = 0; i < 140; i++) { const x0 = r() * W, vx = (r() - .5) * 300, vy = 200 + r() * 500, sp = (r() - .5) * 12, c = cols[i % 5], d = r() * .5;
+    const tt = k - d; if (tt < 0) continue; const x = x0 + vx * tt + Math.sin(tt * 3 + i) * 30, y = -40 + vy * tt + 120 * tt * tt;
+    if (y > H + 40) continue; g.save(); g.translate(x, y); g.rotate(sp * tt); g.fillStyle = c; g.fillRect(-9, -5, 18, 10); g.restore(); }
+}
+function grade(t) {
+  // Tacoma : archive sépia
+  const sep = win(t, T.tacoma, T.tacomaEnd, .2);
+  if (sep > 0) {
+    g.save(); g.globalAlpha = sep; g.globalCompositeOperation = 'saturation'; g.fillStyle = '#808080'; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = '#e2c79a'; g.fillRect(0, 0, W, H); g.restore();
+    g.save(); g.globalAlpha = sep * .5; const r = rng(Math.floor(t * 24));
+    g.fillStyle = '#000'; for (let i = 0; i < 40; i++) g.fillRect(r() * W, r() * H, 2, 2 + r() * 6);
+    g.strokeStyle = 'rgba(40,30,20,.6)'; g.lineWidth = 2; g.beginPath(); const lx = r() * W; g.moveTo(lx, 0); g.lineTo(lx + 4, H); g.stroke(); g.restore();
+  }
+  // éclair
+  const fl = t > T.thunder ? Math.exp(-(t - T.thunder) * 9) : 0;
+  const fl2 = t > T.bravo ? .6 * Math.exp(-(t - T.bravo) * 7) : 0;
+  if (fl + fl2 > .01) { g.fillStyle = `rgba(255,255,255,${Math.min(.85, fl + fl2)})`; g.fillRect(0, 0, W, H); }
+  // vignette
+  const v = g.createRadialGradient(540, 900, 520, 540, 960, 1250); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.35)');
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+  // sortie : coupe nette en boucle (pas de fondu au noir)
+}
+
+window.DURATION = T.end;
+window.render = function (t) {
+  CAM = camera(t);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  sky(t); hills(t);
+  worldTransform();
+  ground(t);
+  anchors(t);
+  pillarB(t);
+  towers(t); mainCable(t);
+  plankA(t); planksB(t); deckC(t);
+  const h = hero(t); drawHero(h, t); car(t);
+  waterOverlay(t);
+  splashAt(t, T.splash1, -20, 30, 1); splashAt(t, T.pillarLand, 0, 26, .8); splashAt(t, T.splash2, 0, 40, 1.1);
+  splashAt(t, T.sweep + .7, 300, 20, .8);
+  currentArrows(t); windStreaks(t);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  rain(t);
+  overlays(t);
+  confetti(t);
+  grade(t);
+  progressBar(t);
+  captions(t);
+};
+window.ready = Promise.all([document.fonts.load("900 92px 'Inter Display'")]);
+</script></body></html>
