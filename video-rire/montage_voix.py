@@ -24,6 +24,6 @@ for bi, blk in enumerate(AL):
 y = np.concatenate(out)
 f = int(.004 * SR)
 open('tmp_voix.raw','wb').write(y.astype(np.float32).tobytes())
-subprocess.run(['ffmpeg','-v','error','-y','-f','f32le','-ar',str(SR),'-ac','1','-i','tmp_voix.raw','-af','atempo=1.12,highpass=f=70,acompressor=threshold=-18dB:ratio=3:attack=5:release=80','voix.wav'],check=True)
+subprocess.run(['ffmpeg','-v','error','-y','-f','f32le','-ar',str(SR),'-ac','1','-i','tmp_voix.raw','-af','atempo=1.05,highpass=f=70,acompressor=threshold=-18dB:ratio=3:attack=5:release=80','voix.wav'],check=True)
 subprocess.run(['rm','tmp_voix.raw'])
 print(subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0','voix.wav'],capture_output=True,text=True).stdout)

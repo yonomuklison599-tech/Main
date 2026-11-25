@@ -93,11 +93,11 @@ function groundY(x, z) {
   const f = box(s, s, s, mat(r() > .5 ? '#3f9a3a' : '#57b146'), .6); f.position.set(x, 4 + s / 2, z); scene.add(f); } }
 
 // ---------------------------------------------------------------- bâtiments
-function makeHouse({ w = 9.4, h = 8, d = 8, wall = '#e9d8b8', roof = '#5a3a32', shutter = '#3b6ea8' }) {
+function makeHouse({ w = 9.2, h = 8, d = 8, wall = '#e9d8b8', roof = '#5a3a32', shutter = '#3b6ea8' }) {
   const grp = new THREE.Group(); const M = c => mat(c);
   const body = box(w, h, d, M(wall)); body.position.y = h / 2; grp.add(body); BLOCKERS.push(body);
-  const r1 = box(w + 1, .5, d * .62, M(roof)); r1.position.set(0, h + 1.2, d * .25); r1.rotation.x = -.6; grp.add(r1);
-  const r2 = box(w + 1, .5, d * .62, M(roof)); r2.position.set(0, h + 1.2, -d * .25); r2.rotation.x = .6; grp.add(r2);
+  const r1 = box(w + .15, .5, d * .62, M(roof)); r1.position.set(0, h + 1.2, d * .25); r1.rotation.x = -.6; grp.add(r1);
+  const r2 = box(w + .15, .5, d * .62, M(roof)); r2.position.set(0, h + 1.2, -d * .25); r2.rotation.x = .6; grp.add(r2);
   const gab = box(w - .2, 2.2, d * .3, M(wall)); gab.position.set(0, h + .9, 0); grp.add(gab);
   const dr = box(1.6, 2.8, .2, M('#6b4423')); dr.position.set(0, 1.4, d / 2 + .05); grp.add(dr);
   const frameM = M('#fbf6ec'), shutM = M(shutter), glass = mat('#5f7f9f', { roughness: .2, metalness: .3 });
@@ -110,7 +110,7 @@ function makeHouse({ w = 9.4, h = 8, d = 8, wall = '#e9d8b8', roof = '#5a3a32', 
       const sill = box(1.9, .15, .4, frameM); sill.position.set(x, y - .85, d / 2 + .15); grp.add(sill);
       if ((rr + Math.round(x)) % 2 === 0) { const fb = box(1.5, .35, .4, M('#7a4a2a')); fb.position.set(x, y - .62, d / 2 + .28); grp.add(fb);
         for (let k = -1; k <= 1; k++) { const fl = box(.35, .3, .3, M(['#ff5d7a', '#ffd23f', '#ff8a3d'][k + 1])); fl.position.set(x + k * .45, y - .32, d / 2 + .3); grp.add(fl); } } } }
-  const corn = box(w + .2, .35, d + .2, frameM); corn.position.y = h + .1; grp.add(corn);
+  const corn = box(w + .1, .35, d + .2, frameM); corn.position.y = h + .1; grp.add(corn);
   scene.add(grp); return grp;
 }
 const houses = [];
@@ -147,7 +147,7 @@ const STAGE = V(0, 1.2, -45);
   const skirt = box(14.1, .6, 7.1, mat('#d4462f')); skirt.position.set(0, .3, -45); scene.add(skirt);
   const mic = box(.12, 2.2, .12, mat('#222')); mic.position.set(0, 2.3, -42.8); scene.add(mic); const mh = box(.35, .5, .35, mat('#333'), .12); mh.position.set(0, 3.45, -42.8); scene.add(mh); BLOCKERS.push(mh, mic); }
 const banana = new THREE.Group(); banana.position.set(-1.6, 1.25, -43.2); scene.add(banana);
-{ for (let i = 0; i < 3; i++) { const p = box(.25, .08, .7, mat('#ffd84a')); p.rotation.y = (i - 1) * .9; p.position.set(Math.sin((i - 1) * .9) * .3, 0, Math.cos((i - 1) * .9) * .3); banana.add(p); } }
+{ for (let i = 0; i < 3; i++) { const p = box(.4, .12, 1.1, mat('#ffe04a', { emissive: new THREE.Color('#ffd84a'), emissiveIntensity: .15 })); p.rotation.y = (i - 1) * .9; p.position.set(Math.sin((i - 1) * .9) * .3, 0, Math.cos((i - 1) * .9) * .3); banana.add(p); } }
 // clocher
 const CLOCHER = V(-32, 0, -47);
 { const t = box(7, 30, 7, mat('#d9c7a0')); t.position.set(CLOCHER.x, 15, CLOCHER.z); scene.add(t); BLOCKERS.push(t);
@@ -177,10 +177,10 @@ const balloonCluster = new THREE.Group(); balloonCluster.position.set(17, .2, -2
 const CINE_IN = V(400, 0, 0);
 { const room = new THREE.Mesh(new THREE.BoxGeometry(22, 24, 26), mat('#5a1f2f', { side: THREE.BackSide })); room.position.set(CINE_IN.x, 12, CINE_IN.z); room.receiveShadow = true; scene.add(room); BLOCKERS.push(room);
   const fl = box(22, .2, 26, mat('#3a1520')); fl.position.set(CINE_IN.x, .1, CINE_IN.z); scene.add(fl);
-  const scr = box(16, 8, .2, mat('#f4f6ff', { emissive: new THREE.Color('#dfe8ff'), emissiveIntensity: .8 })); scr.position.set(CINE_IN.x, 9, CINE_IN.z - 12.8); scene.add(scr);
+  const scr = box(16, 8, .2, mat('#dfe8f6', { emissive: new THREE.Color('#dfe8ff'), emissiveIntensity: .25 })); scr.position.set(CINE_IN.x, 9, CINE_IN.z - 12.8); scene.add(scr);
   for (let r = 0; r < 5; r++) for (let c = 0; c < 7; c++) { const s = box(1.6, 1, 1.4, mat('#b0203a')); s.position.set(CINE_IN.x - 7.2 + c * 2.4, .7, CINE_IN.z - 2 + r * 2.6); scene.add(s); }
   const ceil = new THREE.PointLight(0xffe2c0, 140, 40, 1.4); ceil.position.set(CINE_IN.x, 20, CINE_IN.z + 4); scene.add(ceil);
-  const t20 = box(5, 1.4, .1, new THREE.MeshStandardMaterial({ map: textTex(['PLAFOND : 20 M'], { w: 1024, h: 256, size: 120 }) })); t20.position.set(CINE_IN.x + 8, 21, CINE_IN.z - 12.9); scene.add(t20); }
+  const t20 = box(5, 1.4, .1, new THREE.MeshStandardMaterial({ map: textTex(['PLAFOND : 20 M'], { w: 1024, h: 256, size: 120 }) })); t20.position.set(CINE_IN.x, 15, CINE_IN.z + 12.9); t20.rotation.y = Math.PI; t20.scale.setScalar(1.6); scene.add(t20); }
 const DENT_IN = V(400, 0, 100);
 { const room = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 12), mat('#dff3f0', { side: THREE.BackSide })); room.position.set(DENT_IN.x, 3.5, DENT_IN.z); scene.add(room); BLOCKERS.push(room);
   const fl = box(12, .2, 12, mat('#c8d6d4')); fl.position.set(DENT_IN.x, .1, DENT_IN.z); scene.add(fl);
@@ -255,7 +255,7 @@ function pose(ch, kind, t, k = 1) {
   if (kind === 'talk') { arms[1].rotation.set(-1.1 + Math.sin(t * 5) * .25, 0, .2); head.rotation.y = Math.sin(t * 3) * .1; }
   if (kind === 'holdUp') { arms[1].rotation.set(-2.6, 0, 0); }
   if (kind === 'holdOut') { arms[1].rotation.set(-1.5, 0, 0); }
-  if (kind === 'juggle') { arms[0].rotation.x = -1.3 + Math.sin(t * 10) * .4; arms[1].rotation.x = -1.3 + Math.sin(t * 10 + 3.14) * .4; head.rotation.x = -.5; }
+  if (kind === 'juggle') { const q = t * 1.15 * 2 * Math.PI; arms[0].rotation.set(-1.25 + Math.max(0, Math.sin(q)) * .45, 0, .15); arms[1].rotation.set(-1.25 + Math.max(0, -Math.sin(q)) * .45, 0, -.15); head.rotation.x = -.35; }
   if (kind === 'sit') { legs[0].rotation.x = -1.5; legs[1].rotation.x = -1.5; root.position.y = -1.45 * SC; arms[0].rotation.x = -.3; arms[1].rotation.x = -.3; }
   if (kind === 'strapped') { legs[0].rotation.x = -1.5; legs[1].rotation.x = -1.5; root.position.y = -1.45 * SC; root.rotation.x = -.35; root.position.y += Math.abs(Math.sin(t * 18)) * .06; arms[0].rotation.z = -.15; arms[1].rotation.z = .15; }
   if (kind === 'crossed') { arms[0].rotation.set(.25, 0, -.75); arms[1].rotation.set(.25, 0, .75); }   // mains sur les hanches
@@ -280,14 +280,14 @@ const dentures = new THREE.Group(); { const up = box(.8, .25, .5, mat('#ffffff')
 mamie.userData.arms[1].add(dentures); dentures.position.set(0, -2.5, .5); dentures.scale.setScalar(1.4);
 const mayor = makeChar({ shirt: '#3a3e48', pants: '#2e3138', hair: '#6a4a2a', skin: '#e8b88f', hairStyle: 'none', extras: (root, head, hairG) => {
   const tie = box(.32, 1.4, .1, mat('#c0392b')); tie.position.set(0, 3.2, .52); root.add(tie);
-  const mu = box(.85, .18, .1, mat('#3a2a1a')); mu.position.set(0, .42, .76); head.add(mu);
+  const mu = box(.8, .1, .08, mat('#3a2a1a')); mu.position.set(0, .585, .74); head.add(mu);
   for (const s of [-1, 1]) { const sh = box(1.4, .9, 1.9, mat('#7d8590', { metalness: .6, roughness: .35 })); sh.position.set(s * .5, .25, .2); root.add(sh); root.userData['shoe' + s] = sh;
     const lb = box(.9, .35, .02, new THREE.MeshStandardMaterial({ map: textTex(['30 KG'], { w: 256, h: 128, bg: '#7d8590', fg: '#ffffff', border: '#7d8590', size: 80 }) })); lb.position.set(s * .5, .3, 1.16); root.add(lb); root.userData['lbl' + s] = lb; }
   const wig = new THREE.Group(); const w1 = box(1.6, .55, 1.56, mat('#7a4a20'), .14); w1.position.y = 1.42; wig.add(w1); const w2 = box(1.6, .9, .4, mat('#7a4a20'), .12); w2.position.set(0, 1.05, -.6); wig.add(w2);
   const w3 = box(1.62, .3, 1.4, mat('#8a5a2a'), .1); w3.position.set(.05, 1.68, .05); wig.add(w3); head.add(wig); root.userData.wig = wig; } });
 const oldMayor = makeChar({ shirt: '#1c1c22', pants: '#1c1c22', hair: '#4a4a4a', hairStyle: 'short', extras: (root, head) => {
   const brim = box(1.8, .1, 1.8, mat('#111')); brim.position.y = 1.5; head.add(brim); const top = box(1.2, 1.3, 1.2, mat('#111')); top.position.y = 2.2; head.add(top);
-  const mu = box(.9, .2, .1, mat('#4a4a4a')); mu.position.set(0, .42, .76); head.add(mu); } });
+  const mu = box(.8, .1, .08, mat('#4a4a4a')); mu.position.set(0, .585, .74); head.add(mu); } });
 const clown = makeChar({ shirt: '#ff4d4d', pants: '#4d8bff', hair: '#ff8a1f', hairStyle: 'spiky', extras: (root, head) => {
   const nose = new THREE.Mesh(new THREE.SphereGeometry(.22, 12, 8), mat('#ff2020', { roughness: .3 })); nose.position.set(0, .55, .8); head.add(nose);
   for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.18, 10, 8), mat(['#ffd23f', '#3fbf6b', '#ffffff'][i])); b.position.set(0, 3.6 - i * .55, .55); root.add(b); } } });
@@ -298,7 +298,7 @@ const VILL = [['#d95b5b', '#3a3a3a', '#6a4a2a', 'short'], ['#5bb0d9', '#2a2a5a',
   ['#9a8af0', '#3a3a3a', '#5a3a1a', 'short'], ['#f2d04a', '#2f4f8f', '#3a2010', 'long']].map(([s, p, h, st]) => makeChar({ shirt: s, pants: p, hair: h, hairStyle: st }));
 // pigeon au chapeau
 const juggleG = new THREE.Group(); scene.add(juggleG); const juggled = [];
-for (let i = 0; i < 6; i++) { const bg = box(.22, .22, 1.5, mat('#d89a4a'), .1); juggleG.add(bg); juggled.push(bg); }
+for (let i = 0; i < 6; i++) { const bg = box(1.3, .22, .22, mat('#d89a4a'), .1); juggleG.add(bg); juggled.push(bg); }
 const pigeon = new THREE.Group(); scene.add(pigeon);
 { const gr = mat('#8a8f9c'), dk = mat('#5a5f6c'); const b = box(.9, .7, 1.3, gr, .3); b.position.y = .55; pigeon.add(b); const h = box(.55, .55, .55, dk, .2); h.position.set(0, 1.05, .55); pigeon.add(h);
   const bk = box(.18, .14, .3, mat('#e8a040')); bk.position.set(0, .98, .9); pigeon.add(bk); for (const s of [-1, 1]) { const e = box(.1, .14, .05, mat('#111')); e.position.set(s * .2, 1.12, .83); pigeon.add(e); }
@@ -320,7 +320,7 @@ function buildEvents() {
     cinema: w(57), vingt: w(62), blagues: w(65), premier: w(72), dentiste: w(77), attache: w(79), aucas: w(82), tom: w(87), onze: w(89), decolle: w(94), jamais2: w(95), drole: w(96),
     lou: w(103), rigole: w(105), maman: w(108), ficelle: w(114), ballon: w(115), maire: w(119), plomb: w(122), chaussures: w(125), trente: w(128), souri: w(131), dit: w(135), travail: w(147),
     fete: w(148), pigeon: w(158), chapeau: w(160), eclate: w(162), lache: w(167), montait: w(173), toit: w(175), clocher: w(180), nuages: w(182), essaye: w(184), papa: w(193), rien1: w(200),
-    boulanger: w(201), rien2: w(208), mamie: w(209), toujours: w(214), point: w(216), plomb2: w(225), scene: w(227), banane: w(237), chaussures2: w(243), salto: w(249), perruque: w(255),
+    boulanger: w(201), rien2: w(208), mamie: w(209), toujours: w(214), point: w(216), plomb2: w(225), scene: w(227), banane: w(242), chaussures2: w(243), salto: w(254), perruque: w(255),
     partie: w(258), rigole2: w(262), premiere: w(264), trois: w(271), dix: w(273), nuages2: w(275), attrape: w(277), arreter: w(283), triste: w(290), discours: w(297), redesc: w(301),
     depuis: w(55), soir: w(306), sauf: w(322), vu: w(325), pigeon2: w(331), chapeau2: w(336), lahaut: w(339), serieuse: w(343) };
 }
@@ -399,14 +399,15 @@ function update(t) {
     place(dad, FETE.dad.x, .2, FETE.dad.z, -2.2); setFace(dad, t > E.papa ? 'talk' : 'smile'); pose(dad, t > E.papa ? 'holdOut' : 'idle', t);
     place(baker, FETE.baker.x, .2, FETE.baker.z, 1.9); setFace(baker, 'smile'); pose(baker, t > E.boulanger ? 'juggle' : 'idle', t);
     juggleG.visible = t > E.boulanger; juggleG.position.copy(baker.position); juggleG.rotation.y = baker.rotation.y;
-    juggled.forEach((b, j) => { const ph = (t * 1.6 + j / 6) % 1; b.position.set(Math.cos(ph * 6.283) * .9, 2.1 + Math.sin(ph * Math.PI) * 2.4, .7); b.rotation.set(ph * 9, 0, ph * 5); });
+    juggled.forEach((b, j) => { const u = t * 1.15 + j / 6, ph = u % 1, side = Math.floor(u) % 2 ? 1 : -1;   // cascade : lancer d'une main, rattraper de l'autre
+      const x = lerp(side * .75, -side * .75, ph), y = 1.75 + 4 * 1.9 * ph * (1 - ph); b.position.set(x, y, .75); b.rotation.set(0, 0, ph * Math.PI * 2 * side); });
     place(mamie, FETE.mamie.x, .2, FETE.mamie.z, -2.6); setFace(mamie, 'smile'); pose(mamie, t > E.mamie + .3 ? 'holdOut' : 'idle', t);
     mamie.userData.faceM.map = faceTex(t > E.mamie + .3 ? 'giggle' : 'smile'); dentures.visible = t > E.mamie + .3;
     if (t > E.point - .3) { const lp = pathAt(LOU_PATH(), t); place(lou, lp.x, lp.y, lp.z, Math.PI); setFace(lou, 'laugh'); pose(lou, 'floatLaugh', t); }
   } else dentures.visible = false;
   // J. discours, peau de banane, salto, perruque
   if (S(E.scene - .3, E.soir - .05)) {
-    const walk = seg(t, E.scene - .3, E.banane - .2), slipT = E.banane + .15, flipK = seg(t, slipT, slipT + .9);
+    const walk = seg(t, E.scene - .3, E.banane - .2), slipT = E.banane + .1, flipK = seg(t, slipT, E.salto + .35);
     const x = lerp(-5.5, -1.6, walk); const shoesOff = t > slipT;
     place(mayor, x, STAGE.y + (shoesOff ? Math.sin(flipK * Math.PI) * 3.2 : 0), -43.2, 0);
     mayor.userData.root.rotation.x = 0; pose(mayor, t < slipT ? 'heavyWalk' : 'idle', t);
@@ -450,7 +451,7 @@ leftShoes.position.set(-1.6, STAGE.y, -43.2); scene.add(leftShoes);
 
 // ---------------------------------------------------------------- plans (calés sur les mots, cadrés sur le sujet réel)
 // cadrages : distance, hauteur, focale ; le sujet est relu à chaque image (pas de zoom au mauvais endroit)
-const FR = { top: [3.2, 3.4, 40], cu: [3.2, .1, 30], mcu: [4.4, .3, 34], ms: [6.2, .7, 38], fs: [9.5, 1.4, 40], ws: [26, 9, 46], xws: [60, 26, 48], low: [5.2, -1.4, 42], feet: [3.4, -.6, 36], high: [9, 9, 42] };
+const FR = { sign: [13, .6, 44], cine: [12, -2, 56], top: [4, 3.6, 42], cu: [4.1, .15, 32], mcu: [5.4, .35, 36], ms: [6.2, .7, 38], fs: [9.5, 1.4, 40], ws: [26, 9, 46], xws: [60, 26, 48], low: [5.2, -1.4, 42], feet: [3.4, -.6, 36], high: [9, 9, 42] };
 const SUBJ = {
   tom: () => tom, lou: () => lou, mom: () => mom, dad: () => dad, baker: () => baker, mamie: () => mamie, mayor: () => mayor, oldMayor: () => oldMayor, clown: () => clown, patient: () => patient,
   spec1: () => VILL[1], spec4: () => VILL[4], vA: () => VILL[0], vB: () => VILL[2], vC: () => VILL[3], kid: () => VILL[7], vE: () => VILL[9],
@@ -471,19 +472,19 @@ function buildShots() {
   // S(indice du mot, sujet, cadrage, angle (°, 0 = face au sujet), [partie], [mouvement])
   const A = (i, subj, fr, yaw = 0, part, move = 'push') => S.push({ t: (typeof i === 'number' && i < 1000 ? w(i) : i) - .06, subj, fr, yaw, part, move });
   A(0, 'vA', 'ws', 20, 'body'); A(5, 'vA', 'mcu', 15); A(9, 'vA', 'fs', -10, 'body', 'up');
-  A(10, 'vB', 'mcu', 10); A(12, 'vB', 'feet', 20, 'feet'); A(14, 'vC', 'mcu', -15); A(17, 'vC', 'ws', 8, 'body', 'up');
+  A(10, 'vB', 'mcu', 10); A(12, 'vB', 'fs', 15, 'body'); A(14, 'vC', 'mcu', -15); A(17, 'vC', 'ws', 8, 'body', 'up');
   A(19, '@2,3,-28', 'ws', 0); A(24, 'clown', 'mcu', 10); A(26, 'oldMayor', 'mcu', -20); A(31, '@0,2.5,-32', 'fs', 20, null, 'pan');
   A(40, 'oldMayor', 'cu', 0); A(44, 'clown', 'cu', 15); A(48, 'clown', 'fs', -15, 'body'); A(51, '@2,6,-30', 'xws', 15, null, 'up');
-  A(55, 'spec1', 'fs', 10, 'body', 'up'); A(60, 'spec4', 'ms', 25, 'body'); A(64, 'dad', 'mcu', 20); A(68, '@-10.2,5.6,8.3', 'ms', 180); A(71, 'kid', 'mcu', 0);
+  A(55, 'spec1', 'fs', 10, 'body', 'up'); A(59, '@400,12,4', 'cine', 180, null, 'static'); A(64, '@' + (jokeHouse.position.x) + ',4.2,7', 'sign', 180, null, 'static');
   A(74, 'patient', 'ms', 30); A(78, 'patient', 'mcu', -25); A(82, 'patient', 'cu', 10);
-  A(85, 'tom', 'cu', 0); A(88, 'tom', 'mcu', 25); A(92, 'tom', 'feet', 15, 'feet'); A(95, 'tom', 'cu', -10); A(96, 'tom', 'ms', -20);
+  A(85, 'tom', 'cu', 0); A(88, 'tom', 'mcu', 25); A(92, 'tom', 'fs', 15, 'body'); A(95, 'tom', 'cu', -10); A(96, 'tom', 'ms', -20);
   A(100, 'lou', 'mcu', 10); A(104, 'lou', 'cu', -15); A(108, 'mom', 'fs', 30, 'body'); A(113, 'lou', 'mcu', 40); A(115, '@3,4,-24', 'ws', 0);
   A(118, 'mayor', 'low', 20); A(123, 'mayor', 'feet', 30, 'feet'); A(128, 'mayor', 'feet', -25, 'feet'); A(131, 'mayor', 'cu', 0); A(135, 'mayor', 'mcu', 15); A(142, 'mayor', 'cu', -10);
   A(148, '@0,6,-30', 'ws', 10, null, 'pan'); A(154, 'lou', 'mcu', 15); A(157, 'pigeon', 'fs', 20); A(160, 'pigeon', 'ms', -30); A(162, 'lou', 'cu', 0); A(167, 'mom', 'mcu', 10);
   A(173, 'lou', 'ms', 160, 'body', 'up'); A(175, 'lou', 'ws', 185, 'body'); A(180, 'lou', 'ws', 205, 'body'); A(182, 'lou', 'ws', 165, 'body', 'up');
   A(184, '@5,3,-24', 'fs', 20); A(193, 'dad', 'mcu', -15); A(199, 'tom', 'cu', -35); A(201, 'baker', 'ms', 10, 'body'); A(207, 'tom', 'cu', -10); A(209, 'mamie', 'mcu', 15); A(212, 'mamie', 'cu', 0); A(214, 'tom', 'cu', 0);
   A(216, 'tom', 'low', 160, null, 'up'); A(220, '@-32,88,-62', 'ws', 20);
-  A(223, '@2.5,2.5,-44', 'ws', -8); A(227, 'mayor', 'fs', 10, 'body'); A(235, 'mayor', 'ms', 25); A(239, 'banana', 'high', 60); A(243, 'shoes', 'top', -20); A(249, 'mayor', 'fs', 70, 'body');
+  A(223, '@2.5,2.5,-44', 'ws', -8); A(227, 'mayor', 'fs', 10, 'body'); A(235, 'mayor', 'ms', 25); A(239, 'banana', 'fs', 65); A(243, 'shoes', 'top', -20); A(249, 'mayor', 'fs', 70, 'body');
   A(255, 'mayor', 'cu', 10); A(257, 'wig', 'ms', 30, null, 'up');
   A(262, 'tom', 'cu', 0); A(264, 'tom', 'mcu', 15); A(271, 'tom', 'fs', 40, 'body', 'up'); A(273, 'tom', 'ws', 30, 'body'); A(275, 'tom', 'ms', -20, 'body');
   A(277, 'lou', 'mcu', 30); A(283, 'tom', 'cu', -10); A(290, 'tom', 'cu', 5); A(297, 'tom', 'mcu', 20); A(301, 'tom', 'ws', 25, 'body', 'up');
@@ -495,7 +496,7 @@ function cameraAt(t) {
   let i = 0; for (let k = 0; k < SHOTS.length; k++) if (SHOTS[k].t <= t) i = k;
   const sh = SHOTS[i], t1 = i + 1 < SHOTS.length ? SHOTS[i + 1].t : END, k = seg(t, sh.t, t1);
   const { p, face } = subjectPoint(sh.subj, sh.part); const [d0, h, fov] = FR[sh.fr];
-  let d = d0 * (sh.move === 'push' ? lerp(1.06, .94, k) : 1), yaw = face + sh.yaw * Math.PI / 180 + (sh.move === 'pan' ? lerp(-.12, .12, k) : 0);
+  let d = d0 * (sh.move === 'push' ? lerp(1.03, .97, k) : 1), yaw = face + sh.yaw * Math.PI / 180 + (sh.move === 'pan' ? lerp(-.12, .12, k) : 0);
   const dir = V(Math.sin(yaw), 0, Math.cos(yaw)); let hh = h + (sh.move === 'up' ? lerp(-.15, .15, k) * d0 : 0);
   let cam = p.clone().addScaledVector(dir, d).add(V(0, hh, 0));
   let look = p.clone(); if (sh.move === 'up') look.y += lerp(-.08, .1, k) * d0;
@@ -554,9 +555,12 @@ function caption(t) {
 window.setTiming = d => { CAP = d.captions; E = buildEvents(); END = CAP[CAP.length - 1].e + VO + 1.6; SHOTS = buildShots(); window.DURATION = END; window.SHOTS = SHOTS; return END; };
 window.render = function (t) {
   update(t);
+  scene.updateMatrixWorld(true);   // positions à jour avant les tests d'obstacles (même sur la 1re image)
   const cam = cameraAt(t); camera.position.copy(cam.p); camera.lookAt(cam.c); camera.fov = cam.f; camera.updateProjectionMatrix();
-  const s = cam.sh; sun.target.position.copy(cam.c); sun.position.copy(cam.c).addScaledVector(SUN_DIR, s * 3);
-  const sc = sun.shadow.camera; sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s; sc.near = .1; sc.far = s * 8; sc.updateProjectionMatrix();
+  const s = cam.c.y > 40 ? 120 : 45, tex = 2 * s / sun.shadow.mapSize.x;
+  const ctr = V(Math.round(cam.c.x / tex) * tex, Math.round(cam.c.y / tex) * tex, Math.round(cam.c.z / tex) * tex);
+  sun.target.position.copy(ctr); sun.position.copy(ctr).addScaledVector(SUN_DIR, s * 3);
+  const sc = sun.shadow.camera; if (sc.right !== s) { sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s; sc.near = .1; sc.far = s * 8; sc.updateProjectionMatrix(); }
   camLight.position.copy(cam.p).add(V(0, 1, 0)).lerp(cam.c, .3);
   composer.render();
   g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingQuality = 'high'; g.drawImage(glc, 0, 0, W, H);

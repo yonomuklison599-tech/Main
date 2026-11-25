@@ -50,7 +50,7 @@ fx('rire_enfant', w(105), -9); fx('thud', w(125), -6, .6); fx('thud', w(125) + .
 fx('ambiance_fete', w(148), -20, 1, 10); fx('pigeon', w(158), -6); fx('rire_enfant', w(162), -5, 1, 2.5); fx('envol', w(170), -5, .9); fx('vent_haut', w(180), -14, 1, 4)
 fx('ambiance_fete', w(184), -21, 1, 10); fx('pop', w(197), -9, .8); fx('whoosh', w(204), -12, 1.4); fx('dentier', w(211), -6)
 fx('vent_haut', w(216), -16, 1, 3)
-fx('banane', w(237) + .35, -3); fx('thud', w(244), -6, .7); fx('whoosh2', w(249), -6, .9); fx('thud', w(249) + .9, -4, .8); fx('foule', w(250), -12, 1.1)
+fx('banane', w(242) + .05, -3); fx('thud', w(244), -6, .7); fx('whoosh2', w(249), -6, .9); fx('thud', w(254) + .4, -4, .8); fx('foule', w(255), -12, 1.1)
 fx('whoosh', w(257), -8, 1.3)
 fx('fou_rire', w(262), -4, 1, 3.5); fx('envol', w(271), -4); fx('envol', w(273), -5, 1.2); fx('vent_haut', w(275), -12, 1, 5)
 fx('pop', w(278), -8, 1.2); fx('descente', w(301), -5)
