@@ -333,7 +333,7 @@ const dog = new THREE.Group(); scene.add(dog); { const C = mat('#c89a5a'); const
 // décor : coucher de soleil rose, palmiers, flamants roses
 function palm(x, z, h = 9, lean = .15) { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); let y = 0; for (let i = 0; i < 7; i++) { const s = box(.75 - i * .04, h / 7 + .05, .75 - i * .04, mat(i % 2 ? '#9a7a4a' : '#8a6a3a'), .1); s.position.set(i * lean * .4, y + h / 14, 0); g.add(s); y += h / 7; }
   for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283; const l = box(3.6, .12, .9, mat(i % 2 ? '#3fae5a' : '#2f9a4a'), .05); l.position.set(7 * lean * .4 + Math.cos(a) * 1.6, y - .3, Math.sin(a) * 1.6); l.rotation.set(0, -a, -.45); g.add(l); } return g; }
-for (let x = -76; x <= 56; x += 16) { palm(x + 8, -7.4); palm(x, 7.4, 9.5, -.1); }
+for (let x = -76; x <= 56; x += 16) { palm(x + 8, -7.4); if (Math.abs(x - 18.4) > 6) palm(x, 7.4, 9.5, -.1); }
 for (const [x, z] of [[-20, -18], [20, -18], [-22, -40], [22, -40], [-12, -50], [12, -50]]) palm(x, z, 11);
 function flamingo(x, z, ry) { const g = new THREE.Group(); g.position.set(x, .2, z); g.rotation.y = ry; scene.add(g); const P = mat('#ff7ab8'); const b = box(1.2, .7, .6, P, .25); b.position.y = 2.2; g.add(b);
   const n = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(.5, 2.4, 0), V(.9, 3.2, 0), V(.6, 3.8, 0), V(.9, 4.1, 0)]), 12, .1, 6), P); g.add(n); const h = box(.35, .3, .3, P, .1); h.position.set(.95, 4.15, 0); g.add(h);
@@ -435,7 +435,7 @@ function buildShots() {
   const sx = SH.position.x;
   A(0, `@${sx},4,7`, 'ws', 180, null, 'up'); A(5, `@${sx - 8},2.4,5.5,3.14`, 'grp', 0); A(11, 'v2', 'mcu', 0); A(14, `@${sx + 2.4},2.4,8.3,3.14`, 'ms', 0, null, 'static'); A(23, `@${sx - 10},2.2,5.5,3.14`, 'grp', 10); A(26, 'v1', 'mcu', 10);
   A(29, 'dad', 'mcu', 10); A(33, 'dad', 'cu', 0); A(37, 'mom', 'mcu', -10); A(42, 'mom', 'cu', 0); A(46, '@-38,1.6,-5', 'fs', 0); A(50, '@-38,1.6,-5', 'ms', 20, null, 'static');
-  A(54, `@${sx},4,7`, 'ws', 160, null, 'pan'); A(58, `@${sx - 6},2,5.8,3.14`, 'grp', 20); A(63, `@${sx - 10},2,5.8,3.14`, 'grp', -15, null, 'pan'); A(65, 'papy', 'ms', 60, 'body'); A(71, 'papy', 'mcu', 60); A(77, `@${QX(1)},1.4,4.6,-1.27`, 'fs', 0); A(80, `@${sx - 4},1.6,5.2,3.14`, 'grp', 0);
+  A(54, `@${sx},4,7`, 'ws', 160, null, 'pan'); A(58, `@${sx - 6},2,5.8,3.14`, 'grp', 20); A(63, `@${sx - 10},2,5.8,3.14`, 'grp', -15, null, 'pan'); A(65, 'papy', 'ms', 60, 'body'); A(71, 'papy', 'ms', 60, 'body'); A(77, `@${QX(1)},1.4,4.6,-1.27`, 'fs', 0); A(80, `@${sx - 4},1.6,5.2,3.14`, 'grp', 0);
   A(84, '@0,6,-34', 'ws', 0); A(89, '@0,2,-31,3.14', 'grp', 0); A(93, 'v2', 'mcu', 0); A(97, `@0,${STAGE.y + 5.2},-48.4`, 'screen', 0, null, 'static'); A(104, `@${ROUTER.x},4.2,${ROUTER.z}`, 'ms', 20, null, 'static'); A(106, 'v3', 'mcu', 0); A(107, '@0,3,-31,3.14', 'grp', 20);
   A(111, 'tom', 'mcu', 0, null, 'static'); A(115, 'tom', 'cu', 0); A(118, 'tom', 'mcu', 10, null, 'static'); A(125, 'tom', 'cu', 0, null, 'static');
   A(128, 'tom', 'mcu', 15); A(134, 'tom', 'ms', -10, 'body'); A(141, 'tom', 'cu', 0, null, 'static');
@@ -443,7 +443,7 @@ function buildShots() {
   A(166, 'mayor', 'mcu', 0); A(171, `@${OFF.x},2.5,${OFF.z + 1.2}`, 'grp', 0); A(174, 'mayor', 'cu', 10);
   A(179, `@${OFF.x - 1},2.2,${OFF.z + 1}`, 'grp', 20); A(183, 'tom', 'mcu', 60); A(187, 'tom', 'mcu', 0); A(191, `@${OFF.x + 1.2},1.75,${OFF.z - .8}`, 'top', 0, null, 'static'); A(196, `@${OFF.x + 1.2},1.75,${OFF.z - .8}`, 'top', 0, null, 'static');
   A(198, 'mayor', 'mcu', 10); A(203, 'mayor', 'ms', 0, 'body'); A(207, 'mayor', 'fs', 15, 'body', 'up'); A(212, `@${OFF.x - 1.8},1,${OFF.z + 4}`, 'fs', 30);
-  A(218, `@${sx},4,7`, 'ws', 180, null, 'up'); A(221, `@${sx - 6},2,5.8,3.14`, 'grp', 0); A(225, 'papy', 'mcu', 60); A(229, `@${sx - 4},2,5.2,3.14`, 'grp', 20);
+  A(218, `@${sx},4,7`, 'ws', 180, null, 'up'); A(221, `@${sx - 6},2,5.8,3.14`, 'grp', 0); A(225, 'papy', 'ms', 40, 'body'); A(229, `@${sx - 4},2,5.2,3.14`, 'grp', 20);
   A(232, 'tom', 'mcu', 0); A(235, `@${sx + 2.4},2.4,8.3,3.14`, 'ms', 20, null, 'static'); A(240, 'tom', 'cu', -30, null, 'static');
   S.sort((a, b) => a.t - b.t); S[0].t = 0; return S;
 }
