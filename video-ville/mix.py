@@ -155,9 +155,9 @@ music *= np.convolve(gate, np.ones(880) / 880, mode='same'); music /= np.max(np.
 
 import glob
 ext = sorted(glob.glob('musique_fond.*'))
-if ext:   # musique fournie : accélérée (+12 %) et bouclée sur toute la durée, coupure gardée sur « Rien. »
+if ext:   # musique fournie : accélérée (+10 %) et bouclée sur toute la durée, coupure gardée sur « Rien. »
     raw = decode(ext[0]); tmpf = 'tmp_fast.wav'
-    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', ext[0], '-af', 'atempo=1.12', '-ac', '1', '-ar', str(SR), tmpf], check=True)
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', ext[0], '-af', 'atempo=1.10', '-ac', '1', '-ar', str(SR), tmpf], check=True)
     fast = decode(tmpf); os.remove(tmpf); reps = int(np.ceil(N / len(fast))); m2 = np.tile(fast, reps)[:N]
     gate2 = np.ones(N); gate2[int(E['rien'] * SR):int(E['fesses'] * SR)] = .15
     music = m2 * np.convolve(gate2, np.ones(880) / 880, mode='same'); music /= np.max(np.abs(music)) + 1e-9

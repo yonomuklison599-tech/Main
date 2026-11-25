@@ -1,6 +1,10 @@
 // « Dans cette ville » — ville en blocs, rendu déterministe : window.render(t)
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const W = 1080, H = 1920, VO = 0.15;
 const glc = document.getElementById('gl'), out = document.getElementById('out'), g = out.getContext('2d');
@@ -24,32 +28,34 @@ function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.w
 const renderer = new THREE.WebGLRenderer({ canvas: glc, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(W, H, false);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.4;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x1a2240, 90, 420);
+scene.fog = new THREE.Fog(0x8a5a9a, 110, 520);
 const camera = new THREE.PerspectiveCamera(45, W / H, .05, 3000);
+const composer = new EffectComposer(renderer); composer.setSize(W, H); composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), .3, .35, .97); composer.addPass(bloom); composer.addPass(new OutputPass());
 const hemi = new THREE.HemisphereLight(0x8fa6e8, 0x20283f, 1.2); scene.add(hemi);
-const camLight = new THREE.PointLight(0xfff0dc, 30, 22, 1.4); scene.add(camLight);
+const camLight = new THREE.PointLight(0xfff0dc, 16, 22, 1.4); scene.add(camLight);
 const key = new THREE.DirectionalLight(0xb8ccff, 1.4); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.0005; key.shadow.normalBias = .03;
 scene.add(key, key.target);
 const MOON_DIR = V(-.35, .62, -.7).normalize();
 
 // ciel
 const skyMat = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false,
-  uniforms: { top: { value: new THREE.Color('#0b1030') }, mid: { value: new THREE.Color('#2a2f6e') }, bot: { value: new THREE.Color('#5b4a8a') } },
+  uniforms: { top: { value: new THREE.Color('#3a2a7a') }, mid: { value: new THREE.Color('#9a5aa8') }, bot: { value: new THREE.Color('#f29a8a') } },
   vertexShader: 'varying vec3 vp; void main(){ vp = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
   fragmentShader: 'uniform vec3 top, mid, bot; varying vec3 vp; void main(){ float h = vp.y; vec3 c = h > .1 ? mix(mid, top, smoothstep(.1,.6,h)) : mix(bot, mid, smoothstep(-.05,.1,h)); gl_FragColor = vec4(c,1.); }' });
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(2000, 32, 16), skyMat));
 const stars = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ color: 0xffffff, size: 2.2, sizeAttenuation: false, transparent: true, fog: false }));
 { const r = rng(3), p = []; for (let i = 0; i < 900; i++) { const a = r() * 6.283, y = .08 + r() * .9, rr = Math.sqrt(1 - y * y); p.push(Math.cos(a) * rr * 1800, y * 1800, Math.sin(a) * rr * 1800); }
   stars.geometry.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); scene.add(stars); }
-const moon = new THREE.Mesh(new THREE.SphereGeometry(55, 32, 24), new THREE.MeshBasicMaterial({ color: '#fff6dc', fog: false }));
+const moon = new THREE.Mesh(new THREE.SphereGeometry(55, 32, 24), new THREE.MeshBasicMaterial({ color: '#fffaf0', fog: false }));
 moon.position.copy(MOON_DIR).multiplyScalar(1500); scene.add(moon);
 const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(256, 256, (c, w) => { const gr = c.createRadialGradient(128, 128, 20, 128, 128, 128); gr.addColorStop(0, 'rgba(255,245,220,.9)'); gr.addColorStop(.35, 'rgba(200,200,255,.25)'); gr.addColorStop(1, 'rgba(120,120,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, 256, 256); }), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
 moonGlow.scale.set(520, 520, 1); moonGlow.position.copy(moon.position); scene.add(moonGlow);
 
 // sol et rues
-const ground = box(1600, 1, 1600, mat('#3f7a3a')); ground.position.y = -.5; scene.add(ground);
+const ground = box(1600, 1, 1600, mat('#5aa84a')); ground.position.y = -.5; scene.add(ground);
 const road = box(260, .1, 9, mat('#3b3e46')); road.position.set(0, .05, 0); scene.add(road);
 for (let x = -120; x < 130; x += 8) { const l = box(3, .02, .35, mat('#e8e2c8')); l.position.set(x, .12, 0); scene.add(l); }
 for (const z of [-6, 6]) { const s = box(260, .3, 3, mat('#9a9aa6')); s.position.set(0, .15, z); scene.add(s); }
@@ -385,9 +391,9 @@ function update(t) {
   const cb = cabin.position, fh = firstHouse.position;
   // ciel : matin entre « Au matin » et « Depuis »
   const morning = win(t, E.matin2 - .1, E.depuis - .1, .3);
-  skyMat.uniforms.top.value.set('#0b1030').lerp(new THREE.Color('#5fa8e8'), morning); skyMat.uniforms.mid.value.set('#2a2f6e').lerp(new THREE.Color('#ffd1a1'), morning); skyMat.uniforms.bot.value.set('#5b4a8a').lerp(new THREE.Color('#ffe7c4'), morning);
-  scene.fog.color.set('#1a2240').lerp(new THREE.Color('#ffe1c0'), morning); stars.material.opacity = 1 - morning; moon.visible = moonGlow.visible = morning < .5;
-  hemi.color.set('#8fa6e8').lerp(new THREE.Color('#fff0dc'), morning); hemi.intensity = lerp(1.2, 1.7, morning); key.color.set('#b8ccff').lerp(new THREE.Color('#ffd9a8'), morning); key.intensity = lerp(1.4, 2.6, morning);
+  skyMat.uniforms.top.value.set('#3a2a7a').lerp(new THREE.Color('#5fb0f0'), morning); skyMat.uniforms.mid.value.set('#9a5aa8').lerp(new THREE.Color('#bfe2ff'), morning); skyMat.uniforms.bot.value.set('#f29a8a').lerp(new THREE.Color('#fff1d6'), morning);
+  scene.fog.color.set('#8a5a9a').lerp(new THREE.Color('#e8f2ff'), morning); stars.material.opacity = 1 - morning; moon.visible = moonGlow.visible = morning < .5;
+  hemi.color.set('#d8b0f0').lerp(new THREE.Color('#fff4e6'), morning); hemi.groundColor.set('#4a3a5a'); hemi.intensity = lerp(1.5, 1.8, morning); key.color.set('#ffc8b0').lerp(new THREE.Color('#fff0d0'), morning); key.intensity = lerp(1.6, 2.8, morning);
   lamps.forEach(l => l.material.emissiveIntensity = 2 * (1 - morning)); streetLights.forEach(l => l.intensity = 18 * (1 - morning)); winMat.emissiveIntensity = 1.2 * (1 - morning);
   // horloge
   clockTower.userData.min.rotation.z = -lerp(-.4, 0, seg(t, E.minuit - .3, E.minuit + .5)) * 6.283; clockTower.userData.hour.rotation.z = 0;
@@ -510,10 +516,10 @@ window.render = function (t) {
   const cam = cameraAt(t); camera.position.copy(cam.p); camera.lookAt(cam.c); camera.fov = cam.f; camera.updateProjectionMatrix();
   const s = cam.sh; key.target.position.copy(cam.c); key.position.copy(cam.c).addScaledVector(MOON_DIR, s * 3); const sc = key.shadow.camera; sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s; sc.near = .1; sc.far = s * 8; sc.updateProjectionMatrix();
   camLight.position.copy(cam.p).add(V(0, 1.5, 0)).lerp(cam.c, .25);
-  renderer.render(scene, camera);
+  composer.render();
   g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(glc, 0, 0);
   overlays(t);
-  const v = g.createRadialGradient(540, 900, 520, 540, 960, 1300); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,20,.45)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  const v = g.createRadialGradient(540, 900, 520, 540, 960, 1300); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(30,0,40,.32)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
   caption(t);
 };
 window.ready = document.fonts.load("900 92px 'Inter Display'").then(() => { window.__ready = true; });
