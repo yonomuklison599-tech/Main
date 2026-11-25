@@ -34,7 +34,8 @@ function textTex(lines, { w = 1024, h = 512, bg = '#fff8e8', fg = '#2a1c08', bor
 }
 
 // ---------------------------------------------------------------- moteur
-const renderer = new THREE.WebGLRenderer({ canvas: glc, antialias: true, preserveDrawingBuffer: true });
+const AVATAR = new URLSearchParams(location.search).has('avatar');   // ?avatar : Tom seul sur fond transparent (photo de profil)
+const renderer = new THREE.WebGLRenderer({ canvas: glc, antialias: true, preserveDrawingBuffer: true, alpha: AVATAR });
 renderer.setPixelRatio(1); renderer.setSize(GW, GH, false);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
@@ -553,6 +554,18 @@ function caption(t) {
 
 // ---------------------------------------------------------------- rendu
 window.setTiming = d => { CAP = d.captions; E = buildEvents(); END = CAP[CAP.length - 1].e + VO + 1.6; SHOTS = buildShots(); window.DURATION = END; window.SHOTS = SHOTS; return END; };
+window.renderAvatar = function () {
+  scene.traverse(o => { if (o.isMesh || o.isPoints || o.isSprite) o.visible = false; });
+  const keep = new Set(); tom.traverse(o => keep.add(o)); keep.forEach(o => { if (o.isMesh) o.visible = true; });
+  tom.userData.faceM.visible = true; scene.fog = null; scene.background = null;
+  tom.visible = true; tom.position.set(0, 0, 0); tom.rotation.y = .25; setFace(tom, 'laugh'); pose(tom, 'floatLaugh', 1.3);
+  tom.userData.arms[0].rotation.set(-.15, 0, -2.85); tom.userData.arms[1].rotation.set(-.15, 0, 2.85); tom.userData.root.rotation.x = .05; tom.userData.head.rotation.set(-.1, .1, .08);
+  scene.updateMatrixWorld(true); const hp = tom.userData.hd.getWorldPosition(V(0, 0, 0));
+  camera.aspect = 1; camera.fov = 34; camera.position.copy(hp).add(V(.7, .1, 3.6)); camera.lookAt(hp.clone().add(V(0, -.32, 0))); camera.updateProjectionMatrix();
+  hemi.intensity = 1.6; sun.position.set(4, 8, 6); sun.target.position.set(0, 1, 0); camLight.position.copy(camera.position);
+  renderer.setSize(1200, 1200, false); renderer.setClearColor(0x000000, 0); renderer.render(scene, camera);
+  return glc.toDataURL('image/png');
+};
 window.render = function (t) {
   update(t);
   scene.updateMatrixWorld(true);   // positions à jour avant les tests d'obstacles (même sur la 1re image)

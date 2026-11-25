@@ -27,7 +27,7 @@
 3. **@histoires.en.cubes**, nom affiché : **Histoires en cubes 🧱**
 
 ## Photo de profil
-`photo-de-profil.jpg` : Tom, le héros, qui éclate de rire (1080×1080, visage centré pour le rond de TikTok).
+`photo-de-profil.jpg` : Tom, le héros, en plein fou rire, bras en l'air, détouré avec un contour blanc sur un fond orange à rayons de soleil (1080×1080, pensé pour le rond de TikTok).
 
 ## Bio (à copier-coller)
 ```
