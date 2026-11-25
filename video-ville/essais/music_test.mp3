@@ -1,1 +1,0 @@
-{"detail":{"type":"authentication_error","code":"unauthorized","message":"The API key you used is missing the permission music_generation to execute this operation.","status":"missing_permissions","request_id":"9c23ee4f4522b926fe65ca7ae9c1e003"}}
