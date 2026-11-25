@@ -483,7 +483,7 @@ function buildShots() {
   A(173, 'lou', 'ms', 160, 'body', 'up'); A(175, 'lou', 'ws', 185, 'body'); A(180, 'lou', 'ws', 205, 'body'); A(182, 'lou', 'ws', 165, 'body', 'up');
   A(184, '@5,3,-24', 'fs', 20); A(193, 'dad', 'mcu', -15); A(199, 'tom', 'cu', -35); A(201, 'baker', 'ms', 10, 'body'); A(207, 'tom', 'cu', -10); A(209, 'mamie', 'mcu', 15); A(212, 'mamie', 'cu', 0); A(214, 'tom', 'cu', 0);
   A(216, 'tom', 'low', 160, null, 'up'); A(220, '@-32,88,-62', 'ws', 20);
-  A(223, '@0,2.5,-44', 'ws', 0); A(227, 'mayor', 'fs', 10, 'body'); A(235, 'mayor', 'ms', 25); A(239, 'banana', 'high', 60); A(243, 'shoes', 'top', -20); A(249, 'mayor', 'fs', 70, 'body');
+  A(223, '@2.5,2.5,-44', 'ws', -8); A(227, 'mayor', 'fs', 10, 'body'); A(235, 'mayor', 'ms', 25); A(239, 'banana', 'high', 60); A(243, 'shoes', 'top', -20); A(249, 'mayor', 'fs', 70, 'body');
   A(255, 'mayor', 'cu', 10); A(257, 'wig', 'ms', 30, null, 'up');
   A(262, 'tom', 'cu', 0); A(264, 'tom', 'mcu', 15); A(271, 'tom', 'fs', 40, 'body', 'up'); A(273, 'tom', 'ws', 30, 'body'); A(275, 'tom', 'ms', -20, 'body');
   A(277, 'lou', 'mcu', 30); A(283, 'tom', 'cu', -10); A(290, 'tom', 'cu', 5); A(297, 'tom', 'mcu', 20); A(301, 'tom', 'ws', 25, 'body', 'up');
