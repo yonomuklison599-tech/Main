@@ -1,0 +1,421 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Lac gelé</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// Rendu déterministe : window.render(t) dessine l'image à l'instant t (secondes).
+const W = 1080, H = 1920;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const VOICE_OFFSET = 0.3;          // la voix démarre à 0,3 s
+let WORDS = [];                    // injecté par le script de rendu
+window.setWords = w => { WORDS = w.map(x => ({...x, t: x.t + VOICE_OFFSET})); };
+
+// ---------- utilitaires ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ease = k => (k = clamp(k), k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const easeOut = k => 1 - Math.pow(1 - clamp(k), 3);
+const easeBack = k => { k = clamp(k); const c = 1.7; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647, (seed - 1) / 2147483646); }
+
+// ---------- palette ----------
+const C = {
+  skyTop: '#8f8a86', skyBot: '#d8c3a6',
+  pineFar: '#a39d98', pineMid: '#7e7a78', pineNear: '#5f5d5f',
+  snow: '#efe3d0', snowShade: '#cdbba2',
+  ice: '#e9e6df', iceEdge: '#b9c3c4', iceShade: '#9fb0b3',
+  water: '#1f3c45', waterDeep: '#0f2229',
+  body: '#e09a45', bodyShade: '#b8742e', red: '#d9473a', redShade: '#a8302a',
+  ink: '#3a2a1f', cream: '#f6e7cf', line: 'rgba(250,242,228,.9)'
+};
+
+// ---------- monde ----------
+const ZOOM = 1.75, FOCUS_Y = 1180;
+const ICE_Y = 1150, ICE_T = 46, WATER_Y = 1176;
+const HOLE_A = 830, HOLE_B = 1000;     // trou dans la glace (x monde)
+const SHORE = 0;                        // x < 0 : rive
+
+// arbres (positions fixes)
+const trees = [];
+{ const r = rng(7);
+  for (let layer = 0; layer < 3; layer++) {
+    const n = [26, 20, 9][layer];
+    for (let i = 0; i < n; i++) trees.push({ layer, x: -1400 + r() * 3600, s: (.7 + r() * .5) * [0.55, 0.8, 1.15][layer] });
+  }
+}
+const flakes = []; { const r = rng(3); for (let i = 0; i < 160; i++) flakes.push({ x: r() * W, y: r() * H, z: .3 + r() * .9, p: r() * 6.28 }); }
+const prints = []; for (let x = 120; x < 860; x += 58) prints.push(x);
+
+// grain
+const grain = document.createElement('canvas'); grain.width = grain.height = 512;
+{ const gg = grain.getContext('2d'), id = gg.createImageData(512, 512), r = rng(11);
+  for (let i = 0; i < id.data.length; i += 4) { const v = r() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+  gg.putImageData(id, 0, 0); }
+
+// ---------- chronologie (secondes, voix décalée de 0,3 s) ----------
+const T = {
+  walkEnd: 1.0, crack: 1.1, fall: 1.9, fallEnd: 2.6,
+  shock: 4.4, timerEnd: 7.4, breatheSlow: 7.6,
+  turn: 9.0, arrow: 9.6, solid: 11.3, s3end: 12.9,
+  arms: 13.0, armsEnd: 13.8, kick: 15.1, horiz: 17.4,
+  slide: 18.4, slideEnd: 20.2,
+  dontStand: 21.0, roll: 22.9, rollEnd: 25.0, spread: 24.3, standUp: 25.6, end: 27.2
+};
+
+// état du personnage à l'instant t
+function hero(t) {
+  let x, y, rot = 0, face = 1, sub = 0, kick = 0, arms = 0, mood = 'calm', breath = 0;
+  // 1. marche puis chute
+  if (t < T.fall) {
+    x = lerp(560, 915, easeOut(t / T.walkEnd)); y = ICE_Y;
+    if (t > T.crack) { mood = 'alarm'; x += Math.sin(t * 60) * 2 * seg(t, T.crack, T.fall); }
+  } else if (t < T.arms) {
+    x = 915; const k = seg(t, T.fall, T.fallEnd);
+    y = lerp(ICE_Y, ICE_Y + 110, easeBack(k)) + Math.sin(t * 2.4) * 6 * k; mood = t < T.shock + 1 ? 'alarm' : 'calm';
+    if (t > T.shock) breath = 1;
+    face = t < T.turn ? 1 : -1; if (t > T.turn - .15 && t < T.turn + .15) face = Math.cos((t - T.turn + .15) / .3 * Math.PI);
+  } else if (t < T.slide) {
+    face = -1; breath = 1;
+    arms = easeOut(seg(t, T.arms, T.armsEnd));
+    const h = ease(seg(t, T.kick, T.horiz));
+    x = lerp(915, 905, arms) + h * 10;
+    y = ICE_Y + 110 - 20 * arms + Math.sin(t * 2.4) * 6 * (1 - arms) + 46 * h;
+    rot = -h * Math.PI / 2 * .92; kick = t > T.kick ? 1 : 0;
+  } else if (t < T.dontStand) {
+    face = -1; arms = 1; rot = -Math.PI / 2;
+    const k = ease(seg(t, T.slide, T.slideEnd));
+    x = lerp(915, 660, k); y = lerp(ICE_Y + 136, ICE_Y + 44, easeOut(seg(t, T.slide, T.slide + .9)));
+    kick = k < .7 ? 1 : 0;
+  } else if (t < T.standUp) {
+    face = -1; arms = 1;
+    const k = ease(seg(t, T.roll, T.rollEnd));
+    x = lerp(660, -230, k); y = ICE_Y + 44 - Math.abs(Math.sin((660 - x) / 56)) * 6;
+    rot = -Math.PI / 2 - (660 - x) / 56;     // roule sans glisser
+  } else {
+    face = -1; const k = easeBack(seg(t, T.standUp, T.standUp + .7));
+    x = -230; y = lerp(ICE_Y + 44, ICE_Y - 18, k);
+    const r0 = -Math.PI / 2 - 890 / 56; const r1 = Math.round(r0 / (2 * Math.PI)) * 2 * Math.PI;
+    rot = lerp(r0, r1, k); mood = 'happy';
+  }
+  return { x, y, rot, face, kick, arms, mood, breath };
+}
+
+function camX(t) {
+  let c = 900;
+  if (t > T.arrow - .6) c = lerp(900, 640, ease(seg(t, T.arrow - .6, T.arrow + .9)));
+  if (t > T.solid + .6) c = lerp(640, 860, ease(seg(t, T.solid + .6, T.arms + .3)));
+  if (t > T.slide) c = lerp(860, 720, ease(seg(t, T.slide, T.slideEnd)));
+  if (t > T.roll - .4) c = lerp(720, -60, ease(seg(t, T.roll - .4, T.rollEnd + .3)));
+  return c;
+}
+
+// ---------- dessin ----------
+function pine(x, base, s, col) {
+  g.fillStyle = col;
+  const w = 210 * s, h = 520 * s;
+  for (let i = 0; i < 5; i++) {
+    const k = i / 5, yy = base - h * k, ww = w * (1 - k * .72);
+    g.beginPath(); g.moveTo(x - ww / 2, yy); g.quadraticCurveTo(x, yy - h * .32, x, yy - h * .3);
+    g.quadraticCurveTo(x, yy - h * .32, x + ww / 2, yy); g.closePath(); g.fill();
+    // neige sur les branches
+    g.fillStyle = 'rgba(240,232,220,.35)';
+    g.beginPath(); g.ellipse(x, yy - h * .09, ww * .32, 7 * s, 0, 0, 6.29); g.fill();
+    g.fillStyle = col;
+  }
+  g.fillRect(x - 9 * s, base - 4, 18 * s, 18 * s);
+}
+
+function background(t, cx) {
+  const sky = g.createLinearGradient(0, 0, 0, ICE_Y);
+  sky.addColorStop(0, C.skyTop); sky.addColorStop(1, C.skyBot);
+  g.fillStyle = sky; g.fillRect(0, 0, W, ICE_Y + 10);
+  // brume lointaine
+  g.fillStyle = 'rgba(230,215,195,.35)'; g.fillRect(0, ICE_Y - 330, W, 330);
+  const cols = [C.pineFar, C.pineMid, C.pineNear], par = [.25, .45, .7], bases = [ICE_Y - 230, ICE_Y - 150, ICE_Y - 60];
+  for (let L = 0; L < 3; L++) {
+    for (const tr of trees) if (tr.layer === L) {
+      const sx = tr.x - (cx - 540) * par[L];
+      if (sx > -200 && sx < W + 200) pine(sx, bases[L], tr.s, cols[L]);
+    }
+    // rive lointaine enneigée
+    g.fillStyle = ['#cbb8a0', '#c4ae94', '#bca68c'][L];
+    g.fillRect(0, bases[L], W, (L === 2 ? ICE_Y : bases[L + 1]) - bases[L] + 2);
+    g.fillStyle = 'rgba(0,0,0,.06)'; g.fillRect(0, bases[L], W, 6);
+  }
+}
+
+function breakState(t) { return { cracked: seg(t, T.crack, T.fall), broken: seg(t, T.fall, T.fallEnd) }; }
+
+function iceAndWater(t, cx) {
+  const ox = 540 - cx;
+  // eau sous la glace (coupe)
+  const wg = g.createLinearGradient(0, WATER_Y, 0, H);
+  wg.addColorStop(0, 'rgba(40,78,88,.88)'); wg.addColorStop(1, 'rgba(12,30,36,.97)');
+  g.fillStyle = wg; g.fillRect(0, WATER_Y, W, H - WATER_Y);
+  // reflets / rides
+  g.strokeStyle = 'rgba(180,220,225,.12)'; g.lineWidth = 3;
+  for (let i = 0; i < 9; i++) { const yy = WATER_Y + 80 + i * 70; g.beginPath();
+    for (let x = 0; x <= W; x += 20) g.lineTo(x, yy + Math.sin(x * .012 + t * 1.3 + i) * 6); g.stroke(); }
+
+  const { cracked, broken } = breakState(t);
+  // rive (x<0) : talus de neige
+  const shoreX = SHORE + ox;
+  // dalle de glace
+  const drawSlab = (a, b) => {
+    a = Math.max(a, shoreX); if (b <= a) return;
+    const sg = g.createLinearGradient(0, ICE_Y, 0, ICE_Y + ICE_T);
+    sg.addColorStop(0, '#f4f2ee'); sg.addColorStop(.25, C.ice); sg.addColorStop(1, C.iceShade);
+    g.fillStyle = sg; g.fillRect(a, ICE_Y, b - a, ICE_T);
+    g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(a, ICE_Y, b - a, 4);
+  };
+  const ha = HOLE_A + ox, hb = HOLE_B + ox;
+  if (broken <= 0) drawSlab(-50, W + 50);
+  else { drawSlab(-50, ha); drawSlab(hb, W + 50);
+    // eau dans le trou
+    g.fillStyle = 'rgba(40,78,88,.95)'; g.fillRect(ha, WATER_Y, hb - ha, ICE_Y + ICE_T - WATER_Y);
+    // fragments qui basculent
+    const k = easeOut(broken);
+    [[ha, 1], [hb, -1]].forEach(([e, d], i) => {
+      g.save(); g.translate(e + d * 4, ICE_Y + 18 + k * 22); g.rotate(d * k * (.5 - i * .15) * (1 + .05 * Math.sin(t * 2 + i)));
+      const fg = g.createLinearGradient(0, -12, 0, 26); fg.addColorStop(0, '#f4f2ee'); fg.addColorStop(1, 'rgba(160,185,190,.85)');
+      g.fillStyle = fg; g.beginPath(); g.moveTo(d > 0 ? 0 : -46, -12); g.lineTo(d > 0 ? 46 : 0, -12); g.lineTo(d > 0 ? 40 : -6, 26); g.lineTo(d > 0 ? 4 : -40, 22); g.closePath(); g.fill(); g.restore();
+    });
+  }
+  // fissures
+  if (cracked > 0 && broken < 1) {
+    g.save(); g.globalAlpha = 1 - broken; g.strokeStyle = '#6f8488'; g.lineWidth = 3; g.lineCap = 'round';
+    const r = rng(5), mid = 915 + ox;
+    for (let i = 0; i < 7; i++) {
+      const dir = i % 2 ? 1 : -1, len = (60 + r() * 140) * easeOut(cracked);
+      g.beginPath(); g.moveTo(mid, ICE_Y + 2); let px = mid, py = ICE_Y + 2;
+      for (let s = 0; s < 4; s++) { px += dir * len / 4; py = ICE_Y + 2 + r() * (ICE_T - 4); g.lineTo(px, py); }
+      g.stroke();
+    }
+    g.restore();
+  }
+  // rive
+  if (shoreX > -400) {
+    const bank = () => { g.beginPath(); g.moveTo(-10, H); g.lineTo(-10, ICE_Y - 14);
+      g.lineTo(shoreX - 60, ICE_Y - 14); g.quadraticCurveTo(shoreX + 30, ICE_Y - 14, shoreX + 60, ICE_Y + 40);
+      g.quadraticCurveTo(shoreX + 90, ICE_Y + 200, shoreX + 160, H); g.closePath(); };
+    const eg = g.createLinearGradient(0, ICE_Y, 0, H); eg.addColorStop(0, '#6e5a4a'); eg.addColorStop(1, '#2e241e');
+    bank(); g.fillStyle = eg; g.fill();
+    g.save(); bank(); g.clip(); g.fillStyle = C.snow; g.fillRect(-10, ICE_Y - 20, shoreX + 200, 48);
+    g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(-10, ICE_Y + 24, shoreX + 200, 6); g.restore();
+  }
+  // traces de pas
+  const fp = 1 - seg(t, T.roll + .5, T.rollEnd);
+  g.fillStyle = `rgba(150,140,130,${.45 * fp})`;
+  for (const px of prints) { const sx = px + ox; if (px < 900) { g.beginPath(); g.ellipse(sx, ICE_Y + 3, 13, 4, 0, 0, 6.29); g.fill(); } }
+}
+
+function character(h, t, cx) {
+  const ox = 540 - cx;
+  g.save(); g.translate(h.x + ox, h.y - 100); g.rotate(h.rot); g.translate(0, 100);
+  const bw = 112, bh = 190, f = h.face;
+  // ombre au sol
+  // jambes (battement)
+  const kk = h.kick ? Math.sin(t * 22) : 0;
+  g.fillStyle = C.bodyShade;
+  g.save(); g.translate(-22, -6); g.rotate(kk * .35); g.fillRect(-12, -6, 24, 26); g.restore();
+  g.save(); g.translate(22, -6); g.rotate(-kk * .35); g.fillRect(-12, -6, 24, 26); g.restore();
+  // corps
+  const bg = g.createLinearGradient(-bw / 2, 0, bw / 2, 0);
+  bg.addColorStop(0, C.bodyShade); bg.addColorStop(.35, C.body); bg.addColorStop(.7, '#ecb064'); bg.addColorStop(1, C.bodyShade);
+  g.fillStyle = bg; g.beginPath(); g.roundRect(-bw / 2, -bh - 10, bw, bh, [52, 52, 30, 30]); g.fill();
+  // stries
+  g.strokeStyle = 'rgba(120,70,20,.18)'; g.lineWidth = 3;
+  for (let i = 0; i < 7; i++) { const yy = -40 - i * 16; g.beginPath(); g.moveTo(-bw / 2 + 6, yy); g.lineTo(bw / 2 - 6, yy); g.stroke(); }
+  // écharpe
+  g.fillStyle = C.red; g.beginPath(); g.roundRect(-bw / 2 - 4, -bh + 62, bw + 8, 24, 12); g.fill();
+  g.fillStyle = C.redShade; g.fillRect(f * 18 - 10, -bh + 80, 22, 46);
+  // bonnet
+  g.fillStyle = C.red; g.beginPath(); g.ellipse(0, -bh - 2, bw / 2 + 2, 40, 0, Math.PI, 0); g.fill();
+  g.fillStyle = C.redShade; g.beginPath(); g.roundRect(-bw / 2 - 2, -bh - 8, bw + 4, 18, 9); g.fill();
+  g.fillStyle = C.red; g.beginPath(); g.arc(0, -bh - 46, 17, 0, 6.29); g.fill();
+  // yeux
+  const ex = f * 14;
+  g.fillStyle = C.ink;
+  if (h.mood === 'happy') { g.lineWidth = 5; g.strokeStyle = C.ink;
+    [-16, 16].forEach(d => { g.beginPath(); g.arc(ex + d, -bh + 46, 7, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }); }
+  else { const r = h.mood === 'alarm' ? 8 : 6; [-16, 16].forEach(d => { g.beginPath(); g.arc(ex + d, -bh + 42, r, 0, 6.29); g.fill(); });
+    if (h.mood === 'alarm') { g.beginPath(); g.ellipse(ex, -bh + 60, 6, 8, 0, 0, 6.29); g.fill(); } }
+  // bras
+  const arm = (side) => {
+    g.save(); g.translate(side * (bw / 2 - 4), -bh + 100);
+    let a = side * .5 + Math.sin(t * 3 + side) * .08;
+    if (h.arms > 0) a = lerp(a, f < 0 ? Math.PI * .95 : -Math.PI * .95, h.arms * (side === f ? 1 : .9));
+    g.rotate(a);
+    g.strokeStyle = C.bodyShade; g.lineWidth = 12; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 48); g.stroke();
+    g.fillStyle = C.red; g.beginPath(); g.arc(0, 56, 14, 0, 6.29); g.fill();
+    g.restore();
+  };
+  arm(-1); arm(1);
+  g.restore();
+}
+
+function breathPuffs(h, t, cx) {
+  if (!h.breath) return;
+  const ox = 540 - cx;
+  // respiration rapide (choc) puis lente
+  const slow = seg(t, T.timerEnd - .6, T.breatheSlow + .4);
+  const period = lerp(.55, 1.9, slow);
+  const mx = h.x + ox + h.face * 70, my = h.y - 135;
+  for (let k = 0; k < 3; k++) {
+    const ph = ((t - T.shock) / period - k / 3) % 1; if (ph < 0) continue;
+    g.fillStyle = `rgba(250,245,238,${.55 * (1 - ph)})`;
+    g.beginPath(); g.arc(mx + h.face * ph * 90, my - ph * 60, 10 + ph * 26, 0, 6.29); g.fill();
+  }
+}
+
+function splash(t, cx) {
+  const k = seg(t, T.fall + .25, T.fall + 1.2); if (k <= 0 || k >= 1) return;
+  const ox = 540 - cx, r = rng(9);
+  for (let i = 0; i < 26; i++) {
+    const vx = (r() - .5) * 520, vy = -300 - r() * 520, tt = k * 1.0;
+    const x = 915 + ox + vx * tt, y = WATER_Y + vy * tt + 900 * tt * tt;
+    if (y > WATER_Y + 10) continue;
+    g.fillStyle = `rgba(200,230,235,${.85 * (1 - k)})`; g.beginPath(); g.arc(x, y, 5 + r() * 7, 0, 6.29); g.fill();
+  }
+}
+
+function kickSplash(h, t, cx) {
+  if (!h.kick || h.y < ICE_Y + 100) return;
+  const ox = 540 - cx, r = rng(Math.floor(t * 12));
+  for (let i = 0; i < 6; i++) {
+    const x = h.x + ox + 60 + r() * 50, y = WATER_Y - r() * 40;
+    g.fillStyle = 'rgba(210,235,238,.7)'; g.beginPath(); g.arc(x, y, 4 + r() * 6, 0, 6.29); g.fill();
+  }
+}
+
+// ---------- annotations fines (style "schéma") ----------
+function label(txt, x, y, a, size = 40) {
+  g.save(); g.globalAlpha = a; g.font = `800 ${size}px 'Inter Display'`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = C.line; g.shadowColor = 'rgba(40,25,15,.45)'; g.shadowBlur = 10; g.fillText(txt, x, y); g.restore();
+}
+function annotations(h, t, cx) {
+  const ox = 540 - cx;
+  g.save(); g.strokeStyle = C.line; g.lineWidth = 4; g.lineCap = 'round';
+  g.restore();
+}
+function timer(t) {
+  g.save(); g.lineCap = 'round';
+  const ta = seg(t, T.shock - .2, T.shock + .2) * (1 - seg(t, T.breatheSlow + .6, T.breatheSlow + 1.1));
+  if (ta > 0) {
+    const k = seg(t, T.shock + .2, T.timerEnd), x = 540, y = 330;
+    g.globalAlpha = ta; g.strokeStyle = 'rgba(250,242,228,.3)'; g.lineWidth = 14;
+    g.beginPath(); g.arc(x, y, 120, 0, 6.29); g.stroke();
+    g.strokeStyle = C.line; g.beginPath(); g.arc(x, y, 120, -Math.PI / 2, -Math.PI / 2 + k * 6.283); g.stroke();
+    g.globalAlpha = 1; label('1 MIN', x, y, ta, 64);
+  }
+  g.restore();
+}
+function annotations(h, t, cx) {
+  const ox = 540 - cx;
+  g.save(); g.strokeStyle = C.line; g.lineWidth = 2.5; g.lineCap = 'round';
+  // flèche retour + "glace solide"
+  const aa = seg(t, T.arrow, T.arrow + .3) * (1 - seg(t, T.s3end - .2, T.s3end + .3));
+  if (aa > 0) {
+    const k = ease(seg(t, T.arrow, T.arrow + 1.4)), x0 = 820 + ox, x1 = lerp(x0, 380 + ox, k), y = ICE_Y - 250;
+    g.globalAlpha = aa; g.setLineDash([2, 14]); g.lineWidth = 5;
+    g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.setLineDash([]);
+    g.lineWidth = 4; g.beginPath(); g.moveTo(x1 + 26, y - 22); g.lineTo(x1, y); g.lineTo(x1 + 26, y + 22); g.stroke();
+    g.globalAlpha = 1;
+    const sa = aa * seg(t, T.solid - .3, T.solid + .1);
+    if (sa > 0) {
+      // accolade au-dessus de la glace côté départ
+      g.globalAlpha = sa; g.lineWidth = 2.5; const a = 380 + ox, b = 810 + ox, yy = ICE_Y - 40;
+      g.beginPath(); g.moveTo(a, yy + 20); g.lineTo(a, yy); g.lineTo(b, yy); g.lineTo(b, yy + 20); g.stroke();
+      g.globalAlpha = 1; label('GLACE SOLIDE', (a + b) / 2, yy - 26, sa, 28);
+    }
+  }
+  // ligne horizontale de référence
+  const ha = seg(t, T.kick, T.kick + .4) * (1 - seg(t, T.slide + .2, T.slide + .6));
+  if (ha > 0) {
+    const y = ICE_Y - 30, x = h.x + ox;
+    g.globalAlpha = ha; g.setLineDash([16, 14]); g.beginPath(); g.moveTo(x - 200, y); g.lineTo(x + 200, y); g.stroke(); g.setLineDash([]);
+    // arc d'angle
+    const ang = -h.rot; g.beginPath(); g.arc(x, ICE_Y + 110, 120, -Math.PI / 2 - ang, -Math.PI / 2); g.stroke();
+    g.globalAlpha = 1; label('HORIZONTAL', x - 20, y - 40, ha, 26);
+  }
+  // "ne te relève pas" : silhouette debout barrée
+  const da = seg(t, T.dontStand, T.dontStand + .3) * (1 - seg(t, T.roll - .2, T.roll + .2));
+  if (da > 0) {
+    const x = h.x + ox, y = ICE_Y - 250;
+    g.globalAlpha = da; g.lineWidth = 3;
+    g.beginPath(); g.roundRect(x - 30, y - 120, 60, 120, 26); g.stroke();
+    g.beginPath(); g.arc(x, y - 55, 95, 0, 6.29); g.stroke();
+    g.beginPath(); g.moveTo(x - 67, y - 122); g.lineTo(x + 67, y + 12); g.stroke();
+  }
+  // poids réparti : flèches vers le bas le long du corps
+  const pa = seg(t, T.spread, T.spread + .3) * (1 - seg(t, T.rollEnd + .1, T.rollEnd + .5));
+  if (pa > 0) {
+    const x = h.x + ox;
+    g.globalAlpha = pa; g.lineWidth = 2.5;
+    for (let i = -2; i <= 2; i++) { const xx = x + i * 40, y0 = ICE_Y - 170, y1 = ICE_Y - 130;
+      g.beginPath(); g.moveTo(xx, y0); g.lineTo(xx, y1); g.moveTo(xx - 10, y1 - 12); g.lineTo(xx, y1); g.lineTo(xx + 10, y1 - 12); g.stroke(); }
+    g.globalAlpha = 1; label('POIDS RÉPARTI', x, ICE_Y - 200, pa, 26);
+  }
+  g.restore();
+}
+
+function snowfall(t) {
+  for (const f of flakes) {
+    const y = (f.y + t * 70 * f.z) % H, x = (f.x + Math.sin(t * .8 + f.p) * 22 * f.z + 2000) % W;
+    g.fillStyle = `rgba(250,246,240,${.25 + .45 * f.z})`; g.beginPath(); g.arc(x, y, 1.6 + 2.6 * f.z, 0, 6.29); g.fill();
+  }
+}
+
+function caption(t) {
+  let cur = null;
+  for (let i = 0; i < WORDS.length; i++) { if (WORDS[i].t <= t) cur = i; else break; }
+  if (cur === null) return;
+  const w = WORDS[cur], next = WORDS[cur + 1];
+  const endT = next ? next.t : w.t + w.d + .5; if (t > endT) return;
+  const txt = w.w.replace(/[.,:;!?]/g, '').toUpperCase();
+  const k = easeBack(seg(t, w.t, w.t + .14)), s = lerp(.82, 1, k);
+  g.save(); g.translate(540, 1480); g.scale(s, s);
+  g.font = "900 104px 'Inter Display'"; g.textAlign = 'center'; g.textBaseline = 'middle';
+  let size = 104; while (g.measureText(txt).width > 900) { size -= 6; g.font = `900 ${size}px 'Inter Display'`; }
+  g.lineJoin = 'round'; g.lineWidth = 18; g.strokeStyle = C.ink;
+  g.shadowColor = 'rgba(20,10,5,.55)'; g.shadowBlur = 24; g.shadowOffsetY = 8;
+  g.strokeText(txt, 0, 0); g.shadowColor = 'transparent'; g.fillStyle = C.cream; g.fillText(txt, 0, 0);
+  g.restore();
+}
+
+function grade(t) {
+  // teinte chaude façon pellicule
+  g.save(); g.globalCompositeOperation = 'soft-light'; g.fillStyle = 'rgba(255,160,80,.35)'; g.fillRect(0, 0, W, H); g.restore();
+  const v = g.createRadialGradient(540, 900, 380, 540, 960, 1250);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(30,15,5,.55)');
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+  g.save(); g.globalAlpha = .06; g.globalCompositeOperation = 'overlay';
+  const ox = (t * 977) % 512, oy = (t * 613) % 512;
+  for (let x = -ox; x < W; x += 512) for (let y = -oy; y < H; y += 512) g.drawImage(grain, x, y);
+  g.restore();
+  // fondu d'entrée / de sortie
+  const fade = Math.max(1 - seg(t, 0, .35), seg(t, T.end - .5, T.end));
+  if (fade > 0) { g.fillStyle = `rgba(0,0,0,${fade})`; g.fillRect(0, 0, W, H); }
+}
+
+window.DURATION = T.end;
+window.render = function (t) {
+  const cx = camX(t), h = hero(t);
+  // légère respiration de caméra
+  g.save(); const z = ZOOM * (1 + .015 * Math.sin(t * .5));
+  g.translate(540, FOCUS_Y); g.scale(z, z); g.translate(-540, ICE_Y * -1 + 30);
+  background(t, cx);
+  character(h, t, cx);
+  iceAndWater(t, cx);
+  splash(t, cx); kickSplash(h, t, cx); breathPuffs(h, t, cx);
+  annotations(h, t, cx);
+  g.restore();
+  snowfall(t);
+  timer(t);
+  caption(t);
+  grade(t);
+};
+window.ready = document.fonts.load("900 104px 'Inter Display'").then(() => document.fonts.load("800 40px 'Inter Display'"));
+</script></body></html>
