@@ -7,7 +7,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 await Promise.all([document.fonts.load("900 64px 'Inter Display'"), document.fonts.load("800 34px 'Inter Display'")]);
 
-const HD = new URLSearchParams(location.search).has('hd');
+const HD = new URLSearchParams(location.search).has('hd'), CLEAN = new URLSearchParams(location.search).has('clean');   // ?clean : image sans habillage (photo de profil)
 const W = 1080, H = 1920, VO = 0.15, GW = HD ? 1080 : 720, GH = HD ? 1920 : 1280;
 const glc = document.getElementById('gl'); glc.width = GW; glc.height = GH;
 const out = document.getElementById('out'), g = out.getContext('2d');
@@ -564,6 +564,7 @@ window.render = function (t) {
   camLight.position.copy(cam.p).add(V(0, 1, 0)).lerp(cam.c, .3);
   composer.render();
   g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingQuality = 'high'; g.drawImage(glc, 0, 0, W, H);
+  if (CLEAN) return;
   overlays(t);
   const v = g.createRadialGradient(540, 900, 600, 540, 960, 1300); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.22)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
   caption(t);

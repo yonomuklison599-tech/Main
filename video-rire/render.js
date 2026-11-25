@@ -15,7 +15,8 @@ function serve(root) { return new Promise(r => { const s = http.createServer((q,
   const browser = await chromium.launch({ args: GPU ? ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=metal'] : ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   page.on('pageerror', e => console.error('PAGE ERROR', e.message)); page.on('console', m => { if (m.type() === 'error') console.error('CONSOLE', m.text()); });
-  await page.goto(`http://127.0.0.1:${port}/scene.html${HD ? '?hd' : ''}`);
+  const QS = [HD ? 'hd' : '', args.includes('--clean') ? 'clean' : ''].filter(Boolean).join('&');
+  await page.goto(`http://127.0.0.1:${port}/scene.html${QS ? '?' + QS : ''}`);
   await page.waitForFunction(() => window.__loaded && window.__ready, null, { timeout: 60000 });
   const dur = await page.evaluate(d => window.setTiming(d), timing);
   const grab = t => page.evaluate(t => { window.render(t); return document.getElementById('out').toDataURL('image/jpeg', 0.92); }, t);
