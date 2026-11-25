@@ -18,6 +18,9 @@ Ces règles viennent des références TikTok envoyées (@storyenblocs, @tikcast_
 7. **La crise**, puis **le retournement**, qui passe par un objet ou une phrase mis en place plus tôt (rappel).
 8. **Une chute pince-sans-rire** et, si possible, une boucle qui renvoie au début ou au spectateur.
 - De l'**humour partout** : phrases courtes, pauses avant les chutes, onomatopées.
+- **Varier les fins.** Une partie des vidéos se termine par un **plot twist** qui explique, en une ou deux phrases, pourquoi tout se déroulait ainsi ou pourquoi un personnage agissait comme ça. Exemples : le méchant protégeait en fait la ville ; la règle venait du narrateur lui-même. Le twist doit être préparé par un détail visible plus tôt, pour que le spectateur ait envie de revoir la vidéo.
+- **Varier les sujets** : règles absurdes, parodies de films ou de séries jamais nommés, tendances du moment.
+- **Légende sans question.** La question va dans le commentaire épinglé.
 
 ## Voix
 - **Une seule voix : Liam** (ElevenLabs, `eleven_v3`, français). Le narrateur est le héros : il **joue** l'histoire.
