@@ -1,0 +1,11 @@
+[excited] Dans cette ville, tous les soirs, tout le monde sort faire la fête. [fast] Tout le monde... sauf moi. {H}
+[excited] Et ici, quand tu gagnes un truc, il y a une seule phrase à dire. {T}
+[fast] Le boulanger gagne le prix de la meilleure baguette? {T} Mamie gagne au loto? {T} Le maire gagne les élections? {T} [laughs] Même le chien, au concours canin. {T}
+[mysterious] Le problème? Personne n'a jamais vu le coach Allan. Pas une photo. Pas un nom de famille. [whispers] Rien.
+[serious] Et moi, chaque soir, pendant que toute la ville fait la fête... je m'entraîne. Seul. {H} [deadpan] Même papa sort tous les soirs. Il dit qu'il va danser.
+[mysterious] Une nuit, j'ai entendu un sifflet. Sur le vieux terrain, derrière la mairie. [excited] Un homme en capuche entraînait toute la ville! Le boulanger faisait des pompes. Mamie faisait des dribbles. {H}
+[whispers] Il a retiré sa capuche. [pause] [shocked] C'était papa!
+[excited] Papa ne sortait pas faire la fête. Papa, c'était le coach Allan! [amused] Allan... c'est son deuxième prénom.
+[serious] Il entraînait tout le monde. Sauf moi. [softly] Parce qu'il voulait que je devienne meilleur... tout seul.
+[dramatically] Le lendemain, finale du tournoi. Dernière seconde. Je tire... {H} [excited] Panier! [fast] Et j'ai pris le micro. {T}
+[deadpan] Depuis, papa ne sort plus le soir. [mischievously] Maintenant, c'est moi qui fais la fête.
