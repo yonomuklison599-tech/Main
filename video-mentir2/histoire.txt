@@ -1,0 +1,13 @@
+[excited] Partie deux. Elle ne te croit pas. Alors la roulette tourne pour elle. Ça tourne... ça ralentit...
+[whispers] Détecter les mensonges.
+[fast] Elle s'appelle Maya. Quand quelqu'un ment, elle le voit. Une petite fumée rouge qui sort de la bouche.
+[softly] Le problème? Sur une planète où personne ne ment, son pouvoir ne servait à rien. Seize ans à attendre une seule fumée rouge.
+[excited] Et puis toi. Je suis un prince. Fumée rouge. Énorme.
+[fast] Elle ne te dénonce pas. Elle est fascinée. Tu mens, elle vérifie. Tu deviens le seul humain qu'elle trouve intéressant.
+Ensemble, vous testez tout. Tu dis au prof que l'examen est annulé. Toute la classe rentre chez elle. Maya rigole pendant une heure.
+[mysterious] Mais la panique du soleil a laissé une trace. Les scientifiques ont compris. Quelqu'un, quelque part, a dit une chose fausse. Pour la première fois de l'histoire.
+[serious] Le gouvernement lance une chasse. Personne ne sait à quoi tu ressembles. Ils ont juste un nom: le Menteur.
+[fast] Alors ils font un truc simple. Ils interrogent tout le monde. Une seule question: tu connais le Menteur? Et ici, personne ne peut répondre non si c'est oui.
+[mysterious] Un soir, ils frappent chez Maya. Tu es là, à côté d'elle. Elle ne sait pas mentir. Elle n'a jamais su.
+[whispers] Le policier demande: tu le connais? Maya te regarde... et elle ouvre la bouche.
+[excited] Partie trois? Abonne-toi.
