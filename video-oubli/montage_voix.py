@@ -1,0 +1,29 @@
+# Resserre les silences de la voix ElevenLabs et accélère légèrement (sans changer la hauteur) -> voix.wav
+import json, subprocess, numpy as np
+SR = 44100
+AL = json.load(open('alignement.json'))
+DRAMA = {'Au', 'Depuis,', 'Hier,', 'Rien.', 'Toujours', 'En', 'Une', 'Juste'}   # pauses dramatiques conservées un peu plus longues
+def load(f): return np.frombuffer(subprocess.run(['ffmpeg','-v','error','-i',f,'-ac','1','-ar',str(SR),'-f','f32le','-'],capture_output=True).stdout, dtype=np.float32)
+out = []
+for bi, blk in enumerate(AL):
+    a = load(blk['file']); W = blk['words']
+    cur = max(0, W[0]['t'] - .05)
+    for i in range(1, len(W)):
+        gap = W[i]['t'] - W[i-1]['e']
+        prev = W[i-1]['w']
+        # pauses comiques : longues après un point (avant la chute), courtes après une virgule
+        if prev.endswith('...') or prev.endswith('…'): keep = .30
+        elif prev[-1:] in '.?!': keep = .20
+        elif prev[-1:] in ',:;': keep = .10
+        else: keep = .09
+        if gap > keep + .05:
+            cut0 = W[i-1]['e'] + .06; out.append(a[int(cur*SR):int(cut0*SR)])
+            out.append(np.zeros(int(max(.0, keep - .12) * SR), np.float32)); cur = W[i]['t'] - .06
+    out.append(a[int(cur*SR):int(min(len(a)/SR, W[-1]['e'] + .25)*SR)])
+    if bi < len(AL) - 1: out.append(np.zeros(int(.3 * SR), np.float32))
+y = np.concatenate(out)
+f = int(.004 * SR)
+open('tmp_voix.raw','wb').write(y.astype(np.float32).tobytes())
+subprocess.run(['ffmpeg','-v','error','-y','-f','f32le','-ar',str(SR),'-ac','1','-i','tmp_voix.raw','-af','atempo=1.22,highpass=f=70,acompressor=threshold=-18dB:ratio=3:attack=5:release=80','voix.wav'],check=True)
+subprocess.run(['rm','tmp_voix.raw'])
+print(subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0','voix.wav'],capture_output=True,text=True).stdout)
