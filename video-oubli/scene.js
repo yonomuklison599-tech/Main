@@ -242,7 +242,7 @@ function icon(k, s, col) {
   g.restore();
 }
 function card(i, x, y, s, hl, t) {
-  const [name, ic] = POW[i % POW.length], col = POWCOL[i % POW.length];
+  i = ((i % POW.length) + POW.length) % POW.length; const [name, ic] = POW[i], col = POWCOL[i];
   g.save(); g.translate(x, y); g.scale(s, s);
   if (hl > 0) glow(0, 0, 330, col.replace('#', '') && 'rgba(255,210,80,.6)', hl);
   rr(-135, -190, 270, 380, 30); g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 30; fillStroke(lg(0, -190, 0, 190, ['#25233a', '#15131f']), 7, hl > .5 ? '#ffd23f' : '#3c3a55'); g.shadowBlur = 0;
@@ -287,8 +287,8 @@ SC.push({ i: 0, cam: [[0, 1, 540, 960], [17, 1.08, 540, 940], [21, 1.0, 540, 960
     // cône de lumière
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = (.08 + .22 * near) * (1 - fiche); g.fillStyle = lg(0, 520, 0, 1250, ['rgba(255,240,200,.9)', 'rgba(255,240,200,0)']); g.beginPath(); g.moveTo(x - 30, 520); g.lineTo(x + 30, 520); g.lineTo(x + 190, 1250); g.lineTo(x - 190, 1250); g.closePath(); g.fill(); g.restore();
     rr(x - 40, 505, 80, 30, 8); fillStroke('#2a2838', 5);
-    g.save(); g.globalAlpha = 1 - fiche * (idx % POW.length === TGT && landed ? 0 : 1); g.beginPath(); g.ellipse(x, 1210, 150, 30, 0, 0, Math.PI * 2); g.fillStyle = `rgba(120,200,255,${.12 + .3 * near})`; g.fill();
-    const isT = landed && idx % POW.length === TGT;
+    g.save(); g.globalAlpha = 1 - fiche * (((idx % 10) + 10) % 10 === TGT && landed ? 0 : 1); g.beginPath(); g.ellipse(x, 1210, 150, 30, 0, 0, Math.PI * 2); g.fillStyle = `rgba(120,200,255,${.12 + .3 * near})`; g.fill();
+    const isT = landed && ((idx % 10) + 10) % 10 === TGT;
     if (!(isT && fiche > 0)) card(idx, x, 960, .92 + .1 * near, isT ? 1 : 0, t);
     g.restore(); }
   // vitesse : flou
