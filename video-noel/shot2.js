@@ -1,0 +1,6 @@
+const { chromium } = require('playwright'); const http = require('http'), path = require('path'), fs = require('fs');
+(async () => { const root = __dirname, out = process.argv[2]; const srv = http.createServer((q, r) => { const f = path.join(root, decodeURIComponent(q.url.split('?')[0])); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { 'Content-Type': { '.html': 'text/html', '.js': 'text/javascript', '.otf': 'font/otf' }[path.extname(f)] || 'application/octet-stream' }); r.end(d); }); }).listen(0);
+  await new Promise(r => srv.on('listening', r)); const b = await chromium.launch({ args: ['--enable-unsafe-swiftshader'] }); const p = await b.newPage(); p.on('pageerror', e => console.error('ERR', e.message));
+  await p.goto(`http://127.0.0.1:${srv.address().port}/studio.html?w=900&h=1200`); await p.waitForFunction(() => window.__ready, null, { timeout: 120000 }); fs.mkdirSync(out, { recursive: true });
+  for (const [n, v, e, c] of [['a', 'full', 'smile', false], ['b', 'tq', 'smug', false], ['c', 'face', 'smile', false], ['d', 'face', 'smile', true]]) { const u = await p.evaluate(([v, e, c]) => window.shot(v, e, c), [v, e, c]); fs.writeFileSync(path.join(out, n + '.jpg'), Buffer.from(u.split(',')[1], 'base64')); }
+  await b.close(); srv.close(); })();
