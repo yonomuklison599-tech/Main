@@ -107,6 +107,8 @@ function pose2(ch, kind, t) {
     case 'lie': root.rotation.x = -Math.PI / 2; root.position.y = .52 * SC; root.position.z = 2.45 * SC; arms[0].rotation.z = -.25; arms[1].rotation.z = .25; head.rotation.y = 0; break;
     case 'cradle': arms[0].rotation.set(-.9, 0, .45); elbows[0].rotation.x = -1.4; arms[1].rotation.set(-.9, 0, -.45); elbows[1].rotation.x = -1.4; head.rotation.x = .4; break;
     case 'holdPhoto': arms[0].rotation.set(-1.05, 0, .25); elbows[0].rotation.x = -.7; arms[1].rotation.set(-1.05, 0, -.25); elbows[1].rotation.x = -.7; head.rotation.x = .3; break;
+    case 'dance': { const q = Math.sin(t * 8); arms[0].rotation.set(0, 0, -1.8 - q * .7); arms[1].rotation.set(0, 0, 1.8 - q * .7); elbows[0].rotation.z = -.6; elbows[1].rotation.z = .6; legs[0].rotation.x = q * .4; legs[1].rotation.x = -q * .4; root.rotation.z = q * .12; head.rotation.z = -q * .15; break; }
+    case 'mock': { const q = Math.sin(t * 14); arms[1].rotation.set(-1.45, 0, .1); arms[0].rotation.set(-.3, 0, .4); elbows[0].rotation.x = -1.6; root.rotation.x = .12 + q * .04; head.rotation.x = -.15 + q * .05; break; }
     case 'idle': default: break;
   }
 }
@@ -137,6 +139,7 @@ const amie = makeChar2({ shirt: '#7a5bd6', pants: '#2a2a3a', hair: '#1a1a1a', ha
 const pere = makeChar2({ shirt: '#cfe3ee', pants: '#cfe3ee', hair: '#cfcfcf', hairStyle: 'bald', iris: '#6a4022', skin: '#f0c8a2', extras: (root, head) => { const bd = box(1.3, .32, .14, mat('#9a9a9e', { roughness: .9 }), .1); bd.position.set(0, .12, .72); head.add(bd); const bd2 = box(.8, .2, .12, mat('#9a9a9e', { roughness: .9 }), .06); bd2.position.set(0, -.04, .7); head.add(bd2); } });
 // doigts du père (main droite) pour le mouvement final
 const FINGERS = []; for (let i = 0; i < 4; i++) { const f = box(.17, .42, .2, mat('#f0c8a2', { roughness: .55 }), .06); f.position.set(-.3 + i * .2, -.48, .18); pere.userData.hands[0].add(f); FINGERS.push(f); }
+const infirmiere = makeChar2({ shirt: '#e8f4f8', pants: '#d8eef4', hair: '#3a2418', hairStyle: 'bun', iris: '#3a5a7a', lashes: true, skin: '#e2b08a', extras: (root, head) => { const cap = box(1.0, .3, .9, mat('#ffffff'), .1); cap.position.set(0, 1.75, .1); head.add(cap); const cr = box(.3, .1, .05, mat('#e8333a')); cr.position.set(0, 1.78, .57); head.add(cr); const cr2 = box(.1, .3, .05, mat('#e8333a')); cr2.position.set(0, 1.78, .57); head.add(cr2); } });
 const EXTRAS = [['#d9534f', '#3a4a6a', '#7a5a3a', 'short', '#f0c49c'], ['#4aa3df', '#2a2a3a', '#222', 'pony', '#b87a52'], ['#c96b8a', '#4a3a4a', '#bbb', 'bun', '#ffe0c4'], ['#e0c050', '#4a3a2a', '#8a6a3a', 'curly', '#e2a878'], ['#7bc77b', '#3a4a3a', '#1a1a1a', 'short', '#9a6440'], ['#ff8a5a', '#3a2a5a', '#3a2010', 'long', '#ffe0c4']]
   .map(([s, p, h, st, sk], i) => makeChar2({ shirt: s, pants: p, hair: h, hairStyle: st, skin: sk, lashes: i % 2 === 1, scale: .85 + (i % 3) * .05 }));
 const bebe = new THREE.Group(); scene.add(bebe); { const S = mat('#f6cfa8', { roughness: .5 }); const b = box(1.1, .8, 1.6, mat('#bfe3ff'), .35); b.position.y = .4; bebe.add(b); const h = box(.9, .85, .85, S, .38); h.position.set(0, .7, 1.05); bebe.add(h);

@@ -1,6 +1,6 @@
 # Ajoute des silences après certains mots (roulette qui s'arrête, suspense) et décale les sous-titres
 import json, subprocess, numpy as np, wave
-SR = 44100; ADD = {139: .5, 145: .3, 164: .45, 198: .5, 200: .4, 218: .45, 222: .8}
+SR = 44100; ADD = {258: .6, 264: .4, 283: .5, 342: .5, 344: .6, 346: .5, 364: .5, 368: .9, 404: .6, 415: 1.0}
 v = np.frombuffer(subprocess.run(['ffmpeg','-v','error','-i','voix.wav','-ac','1','-ar',str(SR),'-f','f32le','-'],capture_output=True).stdout, dtype=np.float32)
 d = json.load(open('timing.json')); C = d['captions']; out, cur, sh = [], 0, 0.
 for c in C:

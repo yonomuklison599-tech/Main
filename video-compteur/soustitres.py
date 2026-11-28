@@ -9,14 +9,14 @@ for bi, blk in enumerate(AL):
     Wb = blk['words']; segs_ = []; cur = max(0, Wb[0]['t'] - .05); o = off
     for i in range(1, len(Wb)):
         gap = Wb[i]['t'] - Wb[i-1]['e']; prev = Wb[i-1]['w']
-        keep = .30 if prev.endswith('...') or prev.endswith('…') else .20 if prev[-1:] in '.?!' else .10 if prev[-1:] in ',:;' else .09
+        keep = .48 if prev.endswith('...') or prev.endswith('…') else .34 if prev[-1:] in '.?!' else .16 if prev[-1:] in ',:;' else .10
         if gap > keep + .05:
             c0 = Wb[i-1]['e'] + .06; segs_.append((cur, c0, o)); o += c0 - cur + max(0, keep - .12); cur = Wb[i]['t'] - .06
     endb = min(blk['dur'], Wb[-1]['e'] + .25); segs_.append((cur, endb, o)); o += endb - cur
     def mp(t):
         for s0, s1, oo in segs_:
-            if t <= s1 + 1e-6: return (oo + max(0, t - s0)) / 1.22
-        return (segs_[-1][2] + t - segs_[-1][0]) / 1.22
+            if t <= s1 + 1e-6: return (oo + max(0, t - s0)) / 1.06
+        return (segs_[-1][2] + t - segs_[-1][0]) / 1.06
     for w in Wb: W.append({'t': round(mp(w['t']), 3), 'e': round(mp(w['e']), 3), 'w': w['w']})
     off = o + (.3 if bi < len(AL) - 1 else 0)
 mm = []

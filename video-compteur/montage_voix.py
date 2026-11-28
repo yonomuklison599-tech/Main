@@ -12,10 +12,10 @@ for bi, blk in enumerate(AL):
         gap = W[i]['t'] - W[i-1]['e']
         prev = W[i-1]['w']
         # pauses comiques : longues après un point (avant la chute), courtes après une virgule
-        if prev.endswith('...') or prev.endswith('…'): keep = .30
-        elif prev[-1:] in '.?!': keep = .20
-        elif prev[-1:] in ',:;': keep = .10
-        else: keep = .09
+        if prev.endswith('...') or prev.endswith('…'): keep = .48
+        elif prev[-1:] in '.?!': keep = .34
+        elif prev[-1:] in ',:;': keep = .16
+        else: keep = .10
         if gap > keep + .05:
             cut0 = W[i-1]['e'] + .06; out.append(a[int(cur*SR):int(cut0*SR)])
             out.append(np.zeros(int(max(.0, keep - .12) * SR), np.float32)); cur = W[i]['t'] - .06
@@ -24,6 +24,6 @@ for bi, blk in enumerate(AL):
 y = np.concatenate(out)
 f = int(.004 * SR)
 open('tmp_voix.raw','wb').write(y.astype(np.float32).tobytes())
-subprocess.run(['ffmpeg','-v','error','-y','-f','f32le','-ar',str(SR),'-ac','1','-i','tmp_voix.raw','-af','atempo=1.22,highpass=f=70,acompressor=threshold=-18dB:ratio=3:attack=5:release=80','voix.wav'],check=True)
+subprocess.run(['ffmpeg','-v','error','-y','-f','f32le','-ar',str(SR),'-ac','1','-i','tmp_voix.raw','-af','atempo=1.06,highpass=f=70,acompressor=threshold=-18dB:ratio=3:attack=5:release=80','voix.wav'],check=True)
 subprocess.run(['rm','tmp_voix.raw'])
 print(subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0','voix.wav'],capture_output=True,text=True).stdout)

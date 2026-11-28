@@ -242,6 +242,8 @@ function pose2(ch, kind, t) {
     case 'lie': root.rotation.x = -Math.PI / 2; root.position.y = .52 * SC; root.position.z = 2.45 * SC; arms[0].rotation.z = -.25; arms[1].rotation.z = .25; head.rotation.y = 0; break;
     case 'cradle': arms[0].rotation.set(-.9, 0, .45); elbows[0].rotation.x = -1.4; arms[1].rotation.set(-.9, 0, -.45); elbows[1].rotation.x = -1.4; head.rotation.x = .4; break;
     case 'holdPhoto': arms[0].rotation.set(-1.05, 0, .25); elbows[0].rotation.x = -.7; arms[1].rotation.set(-1.05, 0, -.25); elbows[1].rotation.x = -.7; head.rotation.x = .3; break;
+    case 'dance': { const q = Math.sin(t * 8); arms[0].rotation.set(0, 0, -1.8 - q * .7); arms[1].rotation.set(0, 0, 1.8 - q * .7); elbows[0].rotation.z = -.6; elbows[1].rotation.z = .6; legs[0].rotation.x = q * .4; legs[1].rotation.x = -q * .4; root.rotation.z = q * .12; head.rotation.z = -q * .15; break; }
+    case 'mock': { const q = Math.sin(t * 14); arms[1].rotation.set(-1.45, 0, .1); arms[0].rotation.set(-.3, 0, .4); elbows[0].rotation.x = -1.6; root.rotation.x = .12 + q * .04; head.rotation.x = -.15 + q * .05; break; }
     case 'idle': default: break;
   }
 }
@@ -272,6 +274,7 @@ const amie = makeChar2({ shirt: '#7a5bd6', pants: '#2a2a3a', hair: '#1a1a1a', ha
 const pere = makeChar2({ shirt: '#cfe3ee', pants: '#cfe3ee', hair: '#cfcfcf', hairStyle: 'bald', iris: '#6a4022', skin: '#f0c8a2', extras: (root, head) => { const bd = box(1.3, .32, .14, mat('#9a9a9e', { roughness: .9 }), .1); bd.position.set(0, .12, .72); head.add(bd); const bd2 = box(.8, .2, .12, mat('#9a9a9e', { roughness: .9 }), .06); bd2.position.set(0, -.04, .7); head.add(bd2); } });
 // doigts du père (main droite) pour le mouvement final
 const FINGERS = []; for (let i = 0; i < 4; i++) { const f = box(.17, .42, .2, mat('#f0c8a2', { roughness: .55 }), .06); f.position.set(-.3 + i * .2, -.48, .18); pere.userData.hands[0].add(f); FINGERS.push(f); }
+const infirmiere = makeChar2({ shirt: '#e8f4f8', pants: '#d8eef4', hair: '#3a2418', hairStyle: 'bun', iris: '#3a5a7a', lashes: true, skin: '#e2b08a', extras: (root, head) => { const cap = box(1.0, .3, .9, mat('#ffffff'), .1); cap.position.set(0, 1.75, .1); head.add(cap); const cr = box(.3, .1, .05, mat('#e8333a')); cr.position.set(0, 1.78, .57); head.add(cr); const cr2 = box(.1, .3, .05, mat('#e8333a')); cr2.position.set(0, 1.78, .57); head.add(cr2); } });
 const EXTRAS = [['#d9534f', '#3a4a6a', '#7a5a3a', 'short', '#f0c49c'], ['#4aa3df', '#2a2a3a', '#222', 'pony', '#b87a52'], ['#c96b8a', '#4a3a4a', '#bbb', 'bun', '#ffe0c4'], ['#e0c050', '#4a3a2a', '#8a6a3a', 'curly', '#e2a878'], ['#7bc77b', '#3a4a3a', '#1a1a1a', 'short', '#9a6440'], ['#ff8a5a', '#3a2a5a', '#3a2010', 'long', '#ffe0c4']]
   .map(([s, p, h, st, sk], i) => makeChar2({ shirt: s, pants: p, hair: h, hairStyle: st, skin: sk, lashes: i % 2 === 1, scale: .85 + (i % 3) * .05 }));
 const bebe = new THREE.Group(); scene.add(bebe); { const S = mat('#f6cfa8', { roughness: .5 }); const b = box(1.1, .8, 1.6, mat('#bfe3ff'), .35); b.position.y = .4; bebe.add(b); const h = box(.9, .85, .85, S, .38); h.position.set(0, .7, 1.05); bebe.add(h);
@@ -390,7 +393,7 @@ function crowd(list, t, pts, opts = {}) { list.forEach((ch, i) => { const p = pt
 function update(t) {
   ALL2.forEach(c => { c.visible = false; c.scale.setScalar(1); setBadge(c, null); }); PROPS.forEach(p => p.visible = false); bebe.visible = false; photo.visible = false; freeBadge.visible = false; FINGERS.forEach(f => f.rotation.set(0, 0, 0)); SEPIA = 0; setThread(null, null, 0);
   const S = (a, b) => t >= w(a) - .05 && t < w(b) - .05;
-  drawECG(t, t > w(211) ? 1.4 : 1);
+  drawECG(t, t > w(357) ? 1.4 : 1);
   // A. intro : la rue, tout le monde a un compteur
   if (S(0, 24)) { const k = t; crowd(EXTRAS, t, [[-12 + k * 1.2, .3, 5, Math.PI / 2, 'walk', 'smile', 12], [-6 + k * 1.1, .3, 6.2, Math.PI / 2, 'walk', 'neutral', 57], [4 - k * 1.0, .3, 5.3, -Math.PI / 2, 'walk', 'smile', 3], [10 - k * 1.1, .3, 6.3, -Math.PI / 2, 'walk', 'happy', 140], [-2, .3, 4.9, 0, 'phone', 'neutral', 8], [2.5, .3, 5.2, -.3, 'idle', 'smile', 26]]);
     EXTRAS[4].userData.hands[1]; }
@@ -402,30 +405,64 @@ function update(t) {
   // C. Malo : 1, toujours 1
   if (S(43, 48)) { const H_ = HALL; const k = seg(t, w(43), w(48)); place2(malo, H_.x + lerp(4, -1, k), 0, 0, -.25); setFace2(malo, t > w(46) ? 'sad' : 'neutral', false, t); pose2(malo, t > w(44) && t < w(46) ? 'lookUp' : 'sadWalk', t); setBadge(malo, 1, 1.05);
     crowd(EXTRAS.slice(0, 4), t, [[H_.x - 8 + (t * 4) % 16, 0, 2.5, Math.PI / 2, 'walk', 'happy', 63], [H_.x + 8 - (t * 4) % 16, 0, -3, -Math.PI / 2, 'walk', 'smile', 120], [H_.x - 6, 0, -3.5, .3, 'idle', 'laugh', 48], [H_.x - 4.5, 0, -3.8, -.3, 'idle', 'smile', 35]]); }
-  if (S(48, 52)) { SEPIA = .8; bebe.visible = true; bebe.position.set(NURS.x, 2.4, NURS.z - 2.6); bebe.rotation.y = 0; freeBadge.visible = true; freeBadge.position.set(NURS.x, 4.6, NURS.z - 2); freeBadge.material.map = badgeTex(1); }
-  if (S(52, 58)) { const K_ = KIT; cake.visible = true; cake.position.set(K_.x, 2.75, -1.6); place2(malo, K_.x, 0, .4, Math.PI); malo.rotation.y = Math.PI; place2(malo, K_.x, 0, 1.3, Math.PI); setFace2(malo, t > w(57) ? 'sad' : 'tender', false, t); pose2(malo, 'sit', t); setBadge(malo, 1, 1.1); malo.rotation.y = Math.PI; }
-  if (S(58, 64)) { const F_ = FIELD; place2(malo, F_.x - 1.4, .2, F_.z - 9, Math.PI); setFace2(malo, t > w(61) ? 'happy' : 'focus', false, t); pose2(malo, t < w(61) ? 'kick' : 'cheer', t); setBadge(malo, 1, 1.1); ballMesh.visible = true;
-    const k = seg(t, w(60), w(61) + .3); ballMesh.position.set(F_.x - 1 + k * 1, .7 + Math.sin(k * Math.PI) * 2.5, F_.z - 10 - k * 12.5); ballMesh.rotation.set(t * 9, t * 4, 0);
+  if (S(48, 100)) { SEPIA = .8; bebe.visible = true; bebe.position.set(NURS.x, 2.4, NURS.z - 2.6); bebe.rotation.y = 0; freeBadge.visible = true; freeBadge.position.set(NURS.x, 4.6, NURS.z - 2); freeBadge.material.map = badgeTex(1); }
+  if (S(100, 106)) { const K_ = KIT; cake.visible = true; cake.position.set(K_.x, 2.75, -1.6); place2(malo, K_.x, 0, .4, Math.PI); malo.rotation.y = Math.PI; place2(malo, K_.x, 0, 1.3, Math.PI); setFace2(malo, t > w(105) ? 'sad' : 'tender', false, t); pose2(malo, 'sit', t); setBadge(malo, 1, 1.1); malo.rotation.y = Math.PI; }
+  if (S(106, 112)) { const F_ = FIELD; place2(malo, F_.x - 1.4, .2, F_.z - 9, Math.PI); setFace2(malo, t > w(109) ? 'happy' : 'focus', false, t); pose2(malo, t < w(109) ? 'kick' : 'cheer', t); setBadge(malo, 1, 1.1); ballMesh.visible = true;
+    const k = seg(t, w(108), w(109) + .3); ballMesh.position.set(F_.x - 1 + k * 1, .7 + Math.sin(k * Math.PI) * 2.5, F_.z - 10 - k * 12.5); ballMesh.rotation.set(t * 9, t * 4, 0);
     crowd(EXTRAS.slice(0, 2), t, [[F_.x + 5, .2, F_.z - 6, -2.5, 'idle', 'neutral', 30], [F_.x - 6, .2, F_.z - 5, 2.5, 'phone', 'neutral', 18]]); }
-  if (S(64, 72)) { const F_ = FIELD; place2(malo, F_.x - 18, .2, F_.z + 7.4, Math.PI); malo.rotation.y = 0; setFace2(malo, 'cry', false, t); pose2(malo, 'castSit', t); maloCast.visible = true; setBadge(malo, 1, 1.1); }
+  if (S(112, 120)) { const F_ = FIELD; place2(malo, F_.x - 18, .2, F_.z + 7.4, Math.PI); malo.rotation.y = 0; setFace2(malo, 'cry', false, t); pose2(malo, 'castSit', t); maloCast.visible = true; setBadge(malo, 1, 1.1); }
   // D. qui est ce 1 ?
-  if (S(72, 83)) { const B_ = BED; place2(malo, B_.x - 2.6, 0, -3.2, 0); malo.rotation.y = Math.PI; setFace2(malo, t > w(78) ? 'focus' : 'sad', false, t); pose2(malo, t > w(78) ? 'think' : 'headInHands', t); maloCast.visible = true; setBadge(malo, 1, 1.15); malo.rotation.y = Math.PI * 0; place2(malo, B_.x - 2.6, 0, -3.4, 0); }
-  if (S(83, 90)) { const K_ = KIT; place2(mere, K_.x, 0, .2, Math.PI); mere.rotation.y = 0; place2(mere, K_.x + 1.5, 0, -.2, -.3); setFace2(mere, 'worried', false, t); pose2(mere, 'bills', t); mereBills.visible = true; setBadge(mere, 4, 1.1); }
-  if (S(90, 100)) { const H_ = HALL; place2(pote, H_.x - 1.5, 0, -1, .25); setFace2(pote, 'love', false, t); pose2(pote, 'phone2', t); potePhone.visible = true; setBadge(pote, 31, 1.05); }
-  if (S(100, 109)) { const H_ = HALL; place2(crush, H_.x + 1.5, 0, -1.2, -.35); setFace2(crush, t > w(104) ? 'smug' : 'neutral', t > w(102) && t < w(107), t); pose2(crush, 'whisper', t); setBadge(crush, 74, 1.05); place2(amie, H_.x + 3.8, 0, -1.8, -.8); setFace2(amie, 'laugh', false, t); pose2(amie, 'crossed', t); setBadge(amie, 52, 1);
+  if (S(120, 131)) { const B_ = BED; place2(malo, B_.x - 2.6, 0, -3.2, 0); malo.rotation.y = Math.PI; setFace2(malo, t > w(126) ? 'focus' : 'sad', false, t); pose2(malo, t > w(126) ? 'think' : 'headInHands', t); maloCast.visible = true; setBadge(malo, 1, 1.15); malo.rotation.y = Math.PI * 0; place2(malo, B_.x - 2.6, 0, -3.4, 0); }
+  if (S(131, 138)) { const K_ = KIT; place2(mere, K_.x, 0, .2, Math.PI); mere.rotation.y = 0; place2(mere, K_.x + 1.5, 0, -.2, -.3); setFace2(mere, 'worried', false, t); pose2(mere, 'bills', t); mereBills.visible = true; setBadge(mere, 4, 1.1); }
+  if (S(138, 148)) { const H_ = HALL; place2(pote, H_.x - 1.5, 0, -1, .25); setFace2(pote, 'love', false, t); pose2(pote, 'phone2', t); potePhone.visible = true; setBadge(pote, 31, 1.05); }
+  if (S(148, 157)) { const H_ = HALL; place2(crush, H_.x + 1.5, 0, -1.2, -.35); setFace2(crush, t > w(152) ? 'smug' : 'neutral', t > w(150) && t < w(155), t); pose2(crush, 'whisper', t); setBadge(crush, 74, 1.05); place2(amie, H_.x + 3.8, 0, -1.8, -.8); setFace2(amie, 'laugh', false, t); pose2(amie, 'crossed', t); setBadge(amie, 52, 1);
     place2(malo, H_.x - 4.5, 0, 1.2, .6); setFace2(malo, 'sad', false, t); pose2(malo, 'castStand', t); maloCast.visible = true; setBadge(malo, 1, 1); }
   // E. l'hôpital
-  if (S(109, 122)) { const H_ = HOSP; const k = seg(t, w(109), w(122)); place2(malo, H_.x + .5, 0, lerp(-16, 4, k), 0); setFace2(malo, t > w(117) ? 'worried' : 'neutral', false, t); pose2(malo, 'walk', t * .8); maloCast.visible = true; setBadge(malo, 1, 1); }
-  if (t >= w(122) - .05) { drawECG(t); }
-  if (S(122, 146) || S(176, 201) || (t >= w(201) - .05)) { const C_ = CH7; place2(pere, C_.x + 1.5, 2.45, C_.z - 3.0, 0); pose2(pere, 'lie', t); setFace2(pere, 'sleep', false, t); const n = t > w(217) ? 1 : 0; if (t >= w(133) - .05) { pere.updateMatrixWorld(true); freeBadge.visible = true; freeBadge.material.map = badgeTex(n); const sc_ = t > w(217) ? 1 + .35 * Math.max(0, 1 - (t - w(217)) / .3) : 1; freeBadge.scale.set(1.0 * sc_, .5 * sc_, 1); freeBadge.position.copy(pere.userData.hd.getWorldPosition(V(0, 0, 0))).add(V(0, .5, -1.05)); } }
-  if (S(122, 146)) { const C_ = CH7; if (t < w(133)) { place2(malo, C_.x - 3, 0, C_.z + 5, Math.PI - .4); malo.rotation.y = Math.PI - .6; setFace2(malo, t > w(126) ? 'shock' : 'worried', false, t); pose2(malo, 'castStand', t); maloCast.visible = true; } }
-  if (S(146, 165)) { const C_ = CH7; photo.visible = true; const flip = ease(seg(t, w(157) - .3, w(157) + .3)); photo.position.set(C_.x - 2.6, 3.95, C_.z - 4.5); photo.rotation.set(-.12, flip * Math.PI, 0); }
-  if (S(165, 176)) { SEPIA = .85; const K_ = KIT; place2(mere, K_.x + 1.5, 0, -.5, -.4); setFace2(mere, 'sad', t > w(165) && t < we(175), t); pose2(mere, 'crossed', t); const kid = malo; place2(kid, K_.x - 1.6, 0, 1.2, .6); kid.scale.setScalar(.72); setFace2(kid, 'sad', false, t); pose2(kid, 'idle', t); }
-  if (S(197, 201) || (t >= w(201) - .05)) { const C_ = CH7; const sitting = t >= w(201) - .05; place2(malo, C_.x - 1.75, .3, C_.z - 2.65, Math.PI / 2); if (!sitting) { place2(malo, C_.x - 3.2, 0, C_.z + 2.6, Math.PI - .6); }
-    setFace2(malo, t > w(205) ? 'cry' : sitting ? 'tender' : 'shock', false, t); pose2(malo, sitting ? 'sitReach' : 'castStand', t); maloCast.visible = true; setBadge(malo, 1, 1.15 + (t < w(201) ? .25 * Math.abs(Math.sin(t * 5)) : 0));
-    const pb = pere.userData.hd.getWorldPosition(V(0, 0, 0)); malo.updateMatrixWorld(true); const mb = malo.userData.badge.getWorldPosition(V(0, 0, 0)); setThread(pb.add(V(0, .3, 0)), mb, seg(t, w(197) - .1, w(199)) * (t > w(211) ? 0 : 1));
-    if (t > w(219) - .05) { const k = Math.sin((t - w(219)) * 9); FINGERS.forEach((f, i) => f.rotation.x = -Math.max(0, Math.sin((t - w(219)) * 7 - i * .5)) * .9); } }
-  if (S(176, 197)) { /* père en gros plan, pense à son fils */ }
+  if (S(208, 221)) { const H_ = HOSP; const k = seg(t, w(208), w(221)); place2(malo, H_.x + .5, 0, lerp(-16, 4, k), 0); setFace2(malo, t > w(216) ? 'worried' : 'neutral', false, t); pose2(malo, 'walk', t * .8); maloCast.visible = true; setBadge(malo, 1, 1); }
+  if (t >= w(221) - .05) { drawECG(t); }
+  if (S(221, 265) || S(295, 347) || (t >= w(347) - .05)) { const C_ = CH7; place2(pere, C_.x + 1.5, 2.45, C_.z - 3.0, 0); pose2(pere, 'lie', t); setFace2(pere, 'sleep', false, t); const n = t > w(363) ? 1 : 0; if (t >= w(252) - .05) { pere.updateMatrixWorld(true); freeBadge.visible = true; freeBadge.material.map = badgeTex(n); const sc_ = t > w(363) ? 1 + .35 * Math.max(0, 1 - (t - w(363)) / .3) : 1; freeBadge.scale.set(1.0 * sc_, .5 * sc_, 1); freeBadge.position.copy(pere.userData.hd.getWorldPosition(V(0, 0, 0))).add(V(0, .5, -1.05)); } }
+  if (S(221, 265)) { const C_ = CH7; if (t < w(252)) { place2(malo, C_.x - 3, 0, C_.z + 5, Math.PI - .4); malo.rotation.y = Math.PI - .6; setFace2(malo, t > w(225) ? 'shock' : 'worried', false, t); pose2(malo, 'castStand', t); maloCast.visible = true; } }
+  if (S(265, 284)) { const C_ = CH7; photo.visible = true; const flip = ease(seg(t, w(276) - .3, w(276) + .3)); photo.position.set(C_.x - 2.6, 3.95, C_.z - 4.5); photo.rotation.set(-.12, flip * Math.PI, 0); }
+  if (S(284, 295)) { SEPIA = .85; const K_ = KIT; place2(mere, K_.x + 1.5, 0, -.5, -.4); setFace2(mere, 'sad', t > w(284) && t < we(294), t); pose2(mere, 'crossed', t); const kid = malo; place2(kid, K_.x - 1.6, 0, 1.2, .6); kid.scale.setScalar(.72); setFace2(kid, 'sad', false, t); pose2(kid, 'idle', t); }
+  if (S(343, 347) || (t >= w(347) - .05)) { const C_ = CH7; const sitting = t >= w(347) - .05; place2(malo, C_.x - 1.75, .3, C_.z - 2.65, Math.PI / 2); if (!sitting) { place2(malo, C_.x - 3.2, 0, C_.z + 2.6, Math.PI - .6); }
+    setFace2(malo, t > w(351) ? 'cry' : sitting ? 'tender' : 'shock', false, t); pose2(malo, sitting ? 'sitReach' : 'castStand', t); maloCast.visible = true; setBadge(malo, 1, 1.15 + (t < w(347) ? .25 * Math.abs(Math.sin(t * 5)) : 0));
+    const pb = pere.userData.hd.getWorldPosition(V(0, 0, 0)); malo.updateMatrixWorld(true); const mb = malo.userData.badge.getWorldPosition(V(0, 0, 0)); setThread(pb.add(V(0, .3, 0)), mb, seg(t, w(343) - .1, w(345)) * (t > w(357) ? 0 : 1));
+    if (t > w(365) - .05) { const k = Math.sin((t - w(365)) * 9); FINGERS.forEach((f, i) => f.rotation.x = -Math.max(0, Math.sin((t - w(365)) * 7 - i * .5)) * .9); } }
+  if (S(295, 343)) { /* père en gros plan, pense à son fils */ }
+  // ===== INSERTS (version longue)
+  const clearAll = () => { ALL2.forEach(c => { c.visible = false; setBadge(c, null); }); PROPS.forEach(p => p.visible = false); photo.visible = false; freeBadge.visible = false; cake.visible = false; setThread(null, null, 0); };
+  // I1. « Monsieur Un » : moqueries, vidéo de danse, 2 pendant 3 secondes
+  if (S(52, 100)) { clearAll(); const H_ = HALL;
+    if (t < w(68)) { const k = seg(t, w(52), w(68)); place2(malo, H_.x + lerp(3, -1, k), 0, .2, -.3); setFace2(malo, 'sad', false, t); pose2(malo, 'sadWalk', t); setBadge(malo, 1, 1.05);
+      crowd(EXTRAS.slice(0, 5), t, [[H_.x - 5, 0, -2.5, .6, t > w(58) ? 'mock' : 'idle', t > w(60) ? 'laugh' : 'smug', 41], [H_.x - 3, 0, -3.4, .3, 'mock', 'laugh', 27], [H_.x + 5, 0, -2.6, -.6, 'mock', 'laugh', 66], [H_.x + 6.8, 0, -1.2, -.9, 'idle', 'smug', 19], [H_.x - 7, 0, -.8, .9, 'idle', 'laugh', 33]]); }
+    else if (t < w(86)) { const K_ = BED; place2(malo, K_.x - .5, 0, -3, 0); setFace2(malo, t > w(80) ? 'happy' : 'smile', false, t); pose2(malo, t > w(80) ? 'dance' : 'idle', t); setBadge(malo, 1, 1.05); }
+    else { place2(pote, H_.x - 2.5, 0, -1, .4); setFace2(pote, 'laugh', false, t); pose2(pote, 'phone2', t); potePhone.visible = true; setBadge(pote, 31, 1);
+      crowd(EXTRAS.slice(0, 3), t, [[H_.x + 1, 0, -1.6, -.2, 'phone', 'laugh', 44], [H_.x + 3.5, 0, -1, -.6, 'mock', 'laugh', 58], [H_.x - 5.5, 0, -2.2, .7, 'mock', 'laugh', 12]]);
+      place2(malo, H_.x + 1.2, 0, 2.8, Math.PI + .2); malo.rotation.y = .2; place2(malo, H_.x + 1.5, 0, 2.6, -.3); setFace2(malo, t > w(97) ? 'sad' : t > w(91) ? 'shock' : 'worried', false, t); pose2(malo, t > w(91) && t < w(97) ? 'lookUp' : 'idle', t);
+      const two = t > w(94) && t < w(98) + .2; setBadge(malo, two ? 2 : 1, two ? 1.35 : 1.05); } }
+  // I2. le miroir, la promesse
+  if (S(157, 208)) { clearAll(); const B_ = BED;
+    if (t < w(178) || t > w(198)) { place2(malo, B_.x + 4.2, 0, -3.2, -.6); setFace2(malo, t > w(198) ? 'focus' : t > w(166) ? 'sad' : 'neutral', false, t); pose2(malo, t > w(200) ? 'walk' : 'castStand', t); maloCast.visible = true; setBadge(malo, 1, t > w(166) && t < w(167) + .5 ? 1.4 : 1.1);
+      if (t > w(200)) { const k = seg(t, w(200), w(208)); malo.position.x = B_.x + lerp(4.2, 0, k); malo.position.z = lerp(-3.2, 3.5, k); malo.rotation.y = -.4; } }
+    else { SEPIA = .55; const F_ = FIELD; place2(malo, F_.x - 18, .2, F_.z + 7.4, 0); setFace2(malo, 'cry', false, t); pose2(malo, 'castSit', t); maloCast.visible = true; setBadge(malo, 1, 1.1); } }
+  // I3. l'infirmière
+  if (S(232, 252)) { const C_ = CH7; place2(infirmiere, C_.x - 2.4, 0, C_.z + 1.2, .5); setFace2(infirmiere, 'sad', t < w(242) + .2, t); pose2(infirmiere, t < w(243) ? 'whisper' : 'crossed', t); setBadge(infirmiere, 9, 1);
+    place2(malo, C_.x - 4.6, 0, C_.z + 2.8, Math.PI - .9); malo.rotation.y = 2.3; setFace2(malo, 'worried', false, t); pose2(malo, 'castStand', t); maloCast.visible = true; setBadge(malo, 1, 1); }
+  // I4. montage : chaque match, chaque anniversaire, chaque nuit
+  if (S(316, 322)) { clearAll(); SEPIA = .35;
+    if (t < w(318)) { const F_ = FIELD; place2(malo, F_.x - 1.4, .2, F_.z - 9, Math.PI); setFace2(malo, 'happy', false, t); pose2(malo, 'cheer', t); setBadge(malo, 1, 1.3); }
+    else if (t < w(320)) { const K_ = KIT; cake.visible = true; cake.position.set(K_.x, 2.75, -1.6); place2(malo, K_.x, 0, 1.3, Math.PI); setFace2(malo, 'tender', false, t); pose2(malo, 'sit', t); setBadge(malo, 1, 1.3); malo.rotation.y = 0; }
+    else { const B_ = BED; place2(malo, B_.x + 6, 1.1, -3.6, 0); malo.rotation.y = 0; setFace2(malo, 'sleep', false, t); pose2(malo, 'lie', t); setBadge(malo, null); freeBadge.visible = true; freeBadge.material.map = badgeTex(1); freeBadge.scale.set(1.2, .6, 1); freeBadge.position.set(B_.x + 6, 3.2, -4.2); } }
+  // I5. le lendemain : la mère entre, 2 et 2
+  if (t >= w(369) - .05) { clearAll(); const C_ = CH7, P_ = HOSP; drawECG(t, 1.2);
+    if (t < w(376)) { const k = seg(t, w(369), w(376)); place2(malo, P_.x - .9, 0, lerp(-14, 2, k), 0); setFace2(malo, 'tender', false, t); pose2(malo, 'walk', t * .8); setBadge(malo, 1, 1); place2(mere, P_.x + 1.1, 0, lerp(-15, 1, k), 0); setFace2(mere, 'worried', false, t); pose2(mere, 'walk', t * .8); setBadge(mere, 4, 1); }
+    else { place2(pere, C_.x + 1.5, 2.45, C_.z - 3.0, 0); pose2(pere, 'lie', t); setFace2(pere, 'sleep', false, t); pere.updateMatrixWorld(true);
+      const entered = t > w(382); const km = seg(t, w(382), w(385));
+      place2(mere, C_.x + lerp(-5.5, -1.7, km), 0, C_.z + lerp(6, -1.4, km), entered ? 2.2 : Math.PI); setFace2(mere, t > w(385) ? 'cry' : 'worried', false, t); pose2(mere, entered && km < 1 ? 'walk' : t > w(386) ? 'sitReach' : 'idle', t); if (t > w(386)) { mere.position.y = .3; mere.rotation.y = Math.PI / 2; mere.position.x = C_.x - 1.75; mere.position.z = C_.z - 2.65; }
+      setBadge(mere, 4, 1); place2(malo, C_.x - 3.4, 0, C_.z - .6, Math.PI / 2); setFace2(malo, t > w(394) ? 'happy' : 'tender', false, t); pose2(malo, 'idle', t); malo.rotation.y = Math.PI / 2 - .2;
+      const n2 = t > w(393) ? 2 : 1; freeBadge.visible = true; freeBadge.material.map = badgeTex(n2); const sp_ = t > w(393) ? 1 + .35 * Math.max(0, 1 - (t - w(393)) / .3) : 1; freeBadge.scale.set(sp_, .5 * sp_, 1); freeBadge.position.copy(pere.userData.hd.getWorldPosition(V(0, 0, 0))).add(V(0, .5, -1.05));
+      const m2 = t > w(405) ? 2 : 1; setBadge(malo, m2, t > w(405) ? 1.3 + .4 * Math.max(0, 1 - (t - w(405)) / .35) : 1.1); } }
+
 }
 // ---------------------------------------------------------------- plans
 const FR = { macro: [2.2, .2, 34], cu: [3.6, .1, 32], mcu: [5.0, .3, 36], ms: [6.4, .7, 38], fs: [9.5, 1.4, 40], ws: [20, 6, 44], grp: [12, 1.6, 40], high: [8, 7, 42] };
@@ -435,16 +472,21 @@ function buildShots() {
   const H_ = HALL, F_ = FIELD, B_ = BAKE, K_ = KIT, C_ = CH7, P_ = HOSP, N_ = NURS, BD = BED;
   A(0, '@0,2.6,5.5,1.57', 'ws', 0, null, 'pan'); A(5, 'e3', 'ms', 40, 'body'); A(9, 'e0', 'mcu', 50); A(13, '@-2,2.5,4.9', 'mcu', 25, null, 'static'); A(18, '@2,3.2,5.2', 'grp', 0);
   A(24, 'star', 'ms', 0, 'body'); A(27, 'star', 'mcu', 10); A(31, 'prof', 'ms', 20, 'body'); A(34, 'prof', 'mcu', 0); A(36, 'boul', 'ms', 0, 'body'); A(39, 'boul', 'mcu', -10);
-  A(43, 'malo', 'ms', 30, 'body'); A(45, 'malo', 'mcu', 10, null, 'static'); A(48, `@${N_.x},3.2,${N_.z - 2.4}`, 'ms', 0, null, 'push'); A(52, 'malo', 'mcu', 0); A(55, `@${K_.x},3.4,-.2`, 'grp', 0);
-  A(58, 'malo', 'ms', 30, 'body'); A(61, `@${F_.x},1.8,${F_.z - 21}`, 'fs', 0, null, 'static'); A(62, 'malo', 'mcu', 20); A(64, 'malo', 'ms', 0, 'body'); A(68, 'malo', 'mcu', 0, null, 'static');
-  A(72, 'malo', 'ms', 0, 'body'); A(76, 'malo', 'mcu', 15); A(79, 'malo', 'cu', 0, null, 'static');
-  A(83, 'mere', 'ms', 10, 'body'); A(86, 'mere', 'mcu', 0); A(90, 'pote', 'ms', 0, 'body'); A(94, 'pote', 'mcu', 10); A(100, 'crush', 'ms', -10, 'body'); A(104, 'crush', 'mcu', 0); A(107, 'malo', 'mcu', 20);
-  A(109, `@${P_.x},2.2,${P_.z + 2}`, 'fs', 0, null, 'push'); A(114, 'malo', 'ms', 0, 'body'); A(119, 'malo', 'mcu', 15);
-  A(122, `@${C_.x + 1.5},2.6,${C_.z - 2}`, 'fs', 30, null, 'push'); A(126, 'malo', 'mcu', 0); A(128, 'pereHead', 'mcu', 0, null, 'topPush'); A(133, 'pereHead', 'mcu', 0, null, 'top'); A(141, 'pereHead', 'cu', 0, null, 'top');
-  A(146, `@${C_.x - 2.6},3.95,${C_.z - 4.5}`, 'macro', 0, null, 'push'); A(157, `@${C_.x - 2.6},3.95,${C_.z - 4.5}`, 'macro', 0, null, 'static');
-  A(165, 'mere', 'mcu', 10); A(170, 'malo', 'mcu', 20); A(176, 'pereHead', 'cu', 0, null, 'top'); A(183, 'pereHead', 'mcu', 20, null, 'topPush'); A(190, 'pereHead', 'cu', -20, null, 'top');
-  A(197, 'malo', 'ms', -50, 'body', 'push'); A(201, 'malo', 'ms', 25, 'body'); A(205, 'malo', 'cu', 20, null, 'static'); A(211, 'pereHead', 'mcu', 0, null, 'topPush'); A(215, 'pereHead', 'mcu', 0, null, 'top');
-  A(219, 'pereHand', 'cu', -40, null, 'top');
+  A(43, 'malo', 'ms', 30, 'body'); A(45, 'malo', 'mcu', 10, null, 'static'); A(48, `@${N_.x},3.2,${N_.z - 2.4}`, 'ms', 0, null, 'push'); A(100, 'malo', 'mcu', 0); A(103, `@${K_.x},3.4,-.2`, 'grp', 0);
+  A(106, 'malo', 'ms', 30, 'body'); A(109, `@${F_.x},1.8,${F_.z - 21}`, 'fs', 0, null, 'static'); A(110, 'malo', 'mcu', 20); A(112, 'malo', 'ms', 0, 'body'); A(116, 'malo', 'mcu', 0, null, 'static');
+  A(120, 'malo', 'ms', 0, 'body'); A(124, 'malo', 'mcu', 15); A(127, 'malo', 'cu', 0, null, 'static');
+  A(131, 'mere', 'ms', 10, 'body'); A(134, 'mere', 'mcu', 0); A(138, 'pote', 'ms', 0, 'body'); A(142, 'pote', 'mcu', 10); A(148, 'crush', 'ms', -10, 'body'); A(152, 'crush', 'mcu', 0); A(155, 'malo', 'mcu', 20);
+  A(208, `@${P_.x},2.2,${P_.z + 2}`, 'fs', 0, null, 'push'); A(213, 'malo', 'ms', 0, 'body'); A(218, 'malo', 'mcu', 15);
+  A(221, `@${C_.x + 1.5},2.6,${C_.z - 2}`, 'fs', 30, null, 'push'); A(225, 'malo', 'mcu', 0); A(227, 'pereHead', 'mcu', 0, null, 'topPush'); A(252, 'pereHead', 'mcu', 0, null, 'top'); A(260, 'pereHead', 'cu', 0, null, 'top');
+  A(265, `@${C_.x - 2.6},3.95,${C_.z - 4.5}`, 'macro', 0, null, 'push'); A(276, `@${C_.x - 2.6},3.95,${C_.z - 4.5}`, 'macro', 0, null, 'static');
+  A(284, 'mere', 'mcu', 10); A(289, 'malo', 'mcu', 20); A(295, 'pereHead', 'cu', 0, null, 'top'); A(302, 'pereHead', 'mcu', 20, null, 'topPush'); A(309, 'pereHead', 'cu', -20, null, 'top');
+  A(343, 'malo', 'ms', -50, 'body', 'push'); A(347, 'malo', 'ms', 25, 'body'); A(351, 'malo', 'cu', 20, null, 'static'); A(357, 'pereHead', 'mcu', 0, null, 'topPush'); A(361, 'pereHead', 'mcu', 0, null, 'top');
+  A(365, 'pereHand', 'cu', -40, null, 'top');
+  A(52, 'malo', 'ms', 30, 'body'); A(58, `@${H_.x - 4},2.4,-2.8`, 'grp', 15); A(64, 'malo', 'mcu', -10, null, 'static'); A(68, `@${BD.x - .5},2.6,-3`, 'fs', 0); A(80, 'malo', 'ms', 10, 'body'); A(86, 'pote', 'mcu', 10); A(91, 'malo', 'mcu', 0, null, 'push'); A(97, 'malo', 'cu', 0, null, 'static');
+  A(157, 'malo', 'ms', 20, 'body'); A(162, 'malo', 'mcu', 0, null, 'push'); A(167, 'malo', 'cu', 10, null, 'static'); A(178, 'malo', 'ms', 0, 'body'); A(184, 'malo', 'mcu', 0, null, 'static'); A(198, 'malo', 'mcu', 0, null, 'push'); A(203, 'malo', 'cu', -10, null, 'static');
+  A(232, `@${C_.x - 3},2.6,${C_.z + 1.8}`, 'grp', 40); A(236, 'malo', 'mcu', 0); A(243, `@${C_.x - 2.6},3.95,${C_.z - 4.5}`, 'ms', 20, null, 'push');
+  A(316, 'malo', 'mcu', 10, null, 'static'); A(318, 'malo', 'mcu', 0, null, 'static'); A(320, `@${BD.x + 6},2.4,-4`, 'ms', 0, null, 'top'); A(322, 'pereHead', 'mcu', 0, null, 'topPush');
+  A(369, `@${P_.x},2.2,${P_.z + 2}`, 'fs', 0, null, 'push'); A(376, 'mere', 'ms', 0, 'body', 'push'); A(382, 'mere', 'ms', 30, 'body', 'push'); A(385, 'pereHead', 'mcu', 0, null, 'top'); A(394, 'malo', 'mcu', 0, null, 'push'); A(406, `@${C_.x - 1},2.6,${C_.z - 2.2}`, 'grp', 90, null, 'push');
   S.sort((a, b) => a.t - b.t); S[0].t = 0; return S;
 }
 const sizeOf = ch => Math.max(.06, ch.scale.x * ch.userData.root.scale.y / .5);
@@ -487,16 +529,16 @@ function drawBadges() { const list = []; for (const c of ALL2) if (c.visible && 
 function overlays(t) { drawBadges();
   const at = i => w(i);
   if (t > at(13) && t < at(24)) { const k = seg(t, at(13), at(13) + .3); g.save(); g.globalAlpha = k; pill2('= NOMBRE DE GENS', 540, 300, 50, '#ffd23f', '#1c1c22', easeBack(k)); pill2('QUI PENSENT À TOI', 540, 390, 50, '#1c1c22', '#fff', easeBack(seg(t, at(15), at(15) + .3))); g.restore(); }
-  if (t > at(83) + .3 && t < at(90)) { const [x, y] = headPx(mere, 1.6); thought(clamp(x + 150, 260, 820), clamp(y - 200, 260, 900), at(85), t, () => { g.font = "900 110px 'Inter Display'"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#e8333a'; g.fillText('€ € €', 0, 6); }); cross2(860, 1350, at(88), t); }
-  if (t > at(90) + .3 && t < at(100)) { const [x, y] = headPx(pote, 1.6); thought(clamp(x + 140, 260, 820), clamp(y - 220, 260, 900), at(93), t, () => { g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(0, 0, 70, Math.PI, 0); g.fill(); g.fillStyle = '#ffe0c4'; g.beginPath(); g.arc(0, 14, 58, 0, 7); g.fill(); g.fillStyle = '#1a1410'; for (const sx of [-1, 1]) { g.beginPath(); g.arc(sx * 22, 10, 8, 0, 7); g.fill(); } g.fillStyle = '#ff6fa8'; g.font = "900 48px 'Inter Display'"; g.fillText('♥', 80, -60); g.fillText('♥', -90, -50); });
-    cross2(860, 1350, at(97), t); }
-  if (t > at(100) && t < at(109)) { const [x, y] = headPx(crush, 1.5); speech("C'est qui lui ?", clamp(x - 40, 300, 780), clamp(y - 140, 260, 900), at(103), t, 1); cross2(860, 1350, at(107), t); }
-  if (t > at(122) + .4 && t < at(126)) pill2('CHAMBRE 7', 540, 320, 56, '#2a64d8', '#fff', easeBack(seg(t, at(122), at(122) + .3)));
-  if (t > at(130) && t < at(133)) pill2('COMA • 15 ANS', 540, 320, 52, '#1c1c22', '#fff', easeBack(seg(t, at(130), at(130) + .3)));
-  if (t > at(165) && t < at(176)) { speech('Ton père ?\nIl est parti.', 640, 560, at(170), t, 1); g.save(); g.globalAlpha = .9; pill2('IL Y A 10 ANS', 540, 230, 44, '#f4e2c0', '#1c1c22'); g.restore(); }
-  if (t > at(183) && t < at(197)) { const [x, y] = headPx(pere, 1.2); thought(clamp(x - 60, 300, 780), clamp(y - 260, 300, 820), at(185), t, () => { g.fillStyle = '#bfe3ff'; g.beginPath(); g.ellipse(0, 20, 90, 60, 0, 0, 7); g.fill(); g.fillStyle = '#f6cfa8'; g.beginPath(); g.arc(30, -6, 46, 0, 7); g.fill(); g.strokeStyle = '#1a1410'; g.lineWidth = 6; for (const sx of [14, 46]) { g.beginPath(); g.arc(sx, -10, 8, 1.1 * Math.PI, 1.9 * Math.PI); g.stroke(); } g.fillStyle = '#ff6fa8'; g.font = "900 46px 'Inter Display'"; g.fillText('♥', -90, -60); }, 170); }
-  if (t > at(198) && t < at(201)) { g.save(); g.globalAlpha = seg(t, at(198), at(198) + .3); g.font = "900 120px 'Inter Display'"; g.textAlign = 'center'; g.lineJoin = 'round'; g.lineWidth = 24; g.strokeStyle = '#1c1c22'; g.strokeText('LE 1…', 540, 360); g.fillStyle = '#ffd23f'; g.shadowColor = '#ffb020'; g.shadowBlur = 40; g.fillText('LE 1…', 540, 360); g.restore(); }
-  if (t > at(217)) { const k = seg(t, at(217), at(217) + .5); g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .25 * (1 - k); g.fillStyle = '#ffd27a'; g.fillRect(0, 0, W, H); g.restore(); }
+  if (t > at(131) + .3 && t < at(138)) { const [x, y] = headPx(mere, 1.6); thought(clamp(x + 150, 260, 820), clamp(y - 200, 260, 900), at(133), t, () => { g.font = "900 110px 'Inter Display'"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#e8333a'; g.fillText('€ € €', 0, 6); }); cross2(860, 1350, at(136), t); }
+  if (t > at(138) + .3 && t < at(148)) { const [x, y] = headPx(pote, 1.6); thought(clamp(x + 140, 260, 820), clamp(y - 220, 260, 900), at(141), t, () => { g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(0, 0, 70, Math.PI, 0); g.fill(); g.fillStyle = '#ffe0c4'; g.beginPath(); g.arc(0, 14, 58, 0, 7); g.fill(); g.fillStyle = '#1a1410'; for (const sx of [-1, 1]) { g.beginPath(); g.arc(sx * 22, 10, 8, 0, 7); g.fill(); } g.fillStyle = '#ff6fa8'; g.font = "900 48px 'Inter Display'"; g.fillText('♥', 80, -60); g.fillText('♥', -90, -50); });
+    cross2(860, 1350, at(145), t); }
+  if (t > at(148) && t < at(157)) { const [x, y] = headPx(crush, 1.5); speech("C'est qui lui ?", clamp(x - 40, 300, 780), clamp(y - 140, 260, 900), at(151), t, 1); cross2(860, 1350, at(155), t); }
+  if (t > at(221) + .4 && t < at(225)) pill2('CHAMBRE 7', 540, 320, 56, '#2a64d8', '#fff', easeBack(seg(t, at(221), at(221) + .3)));
+  if (t > at(249) && t < at(252)) pill2('COMA • 15 ANS', 540, 320, 52, '#1c1c22', '#fff', easeBack(seg(t, at(249), at(249) + .3)));
+  if (t > at(284) && t < at(295)) { speech('Ton père ?\nIl est parti.', 640, 560, at(289), t, 1); g.save(); g.globalAlpha = .9; pill2('IL Y A 10 ANS', 540, 230, 44, '#f4e2c0', '#1c1c22'); g.restore(); }
+  if (t > at(302) && t < at(343)) { const [x, y] = headPx(pere, 1.2); thought(clamp(x - 60, 300, 780), clamp(y - 260, 300, 820), at(304), t, () => { g.fillStyle = '#bfe3ff'; g.beginPath(); g.ellipse(0, 20, 90, 60, 0, 0, 7); g.fill(); g.fillStyle = '#f6cfa8'; g.beginPath(); g.arc(30, -6, 46, 0, 7); g.fill(); g.strokeStyle = '#1a1410'; g.lineWidth = 6; for (const sx of [14, 46]) { g.beginPath(); g.arc(sx, -10, 8, 1.1 * Math.PI, 1.9 * Math.PI); g.stroke(); } g.fillStyle = '#ff6fa8'; g.font = "900 46px 'Inter Display'"; g.fillText('♥', -90, -60); }, 170); }
+  if (t > at(344) && t < at(347)) { g.save(); g.globalAlpha = seg(t, at(344), at(344) + .3); g.font = "900 120px 'Inter Display'"; g.textAlign = 'center'; g.lineJoin = 'round'; g.lineWidth = 24; g.strokeStyle = '#1c1c22'; g.strokeText('LE 1…', 540, 360); g.fillStyle = '#ffd23f'; g.shadowColor = '#ffb020'; g.shadowBlur = 40; g.fillText('LE 1…', 540, 360); g.restore(); }
+  if (t > at(363)) { const k = seg(t, at(363), at(363) + .5); g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .25 * (1 - k); g.fillStyle = '#ffd27a'; g.fillRect(0, 0, W, H); g.restore(); }
 }
 let CH = [];
 function buildChunks() { CH = []; let cur = []; CAP.forEach((c, i) => { cur.push(i); if (/[.,!?:…]$/.test(c.w) || cur.length >= 3) { CH.push(cur); cur = []; } }); if (cur.length) CH.push(cur); }
@@ -522,6 +564,6 @@ window.render = function (t) {
   caption(t);
   if (t > END - .5) { g.fillStyle = `rgba(0,0,0,${clamp((t - END + .5) / .5)})`; g.fillRect(0, 0, W, H); }
 };
-window.__dbg = () => { const h = pere.userData.hands[0].getWorldPosition(V(0, 0, 0)); return { hand: [h.x, h.y, h.z], cam: [camera.position.x, camera.position.y, camera.position.z], vis: pere.visible }; };
+window.__dbg = () => { const h = pere.userData.hands[0].getWorldPosition(V(0, 0, 0)); const fb = freeBadge.position; return { hand: [h.x, h.y, h.z], cam: [camera.position.x, camera.position.y, camera.position.z], vis: pere.visible, fb: [fb.x, fb.y, fb.z, freeBadge.visible], q: project(fb.clone()) }; };
 window.ready = Promise.resolve().then(() => { window.__ready = true; });
 window.__loaded = true;
