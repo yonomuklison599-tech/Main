@@ -1,0 +1,12 @@
+[excited] Partie deux. Combien de temps tu as sauté? La roulette va te le dire. Ça tourne... ça ralentit...
+[whispers] Point d'interrogation.
+[fast] Même la roulette ne sait pas. Alors tu enquêtes.
+Ta mère a des cheveux blancs. Ton petit frère a une moustache. Ton chien... n'est plus là.
+[serious] Tu décides d'arrêter. Plus jamais passer. Mais le bouton... appuie tout seul.
+[fast] Tu te brosses les dents? Passé. Tu dis bonjour? Passé. Des journées entières disparaissent.
+[mysterious] Et les détails bizarres empirent. Le bip revient. De plus en plus souvent. Les gens te parlent tout doucement. Toujours la même phrase: est-ce que tu m'entends?
+[whispers] Partout, tu croises une infirmière. Au lycée. Au McDo. Dans ton salon. Personne d'autre ne la voit.
+[serious] Un jour, au lycée, il y a une porte que tu n'avais jamais vue. Chambre deux cent quatorze.
+[fast] Tu l'ouvres. Un lit. Des machines. Des fleurs. Et dans le lit, un garçon qui dort.
+[whispers] Il a ton visage.
+[excited] Partie trois. La fin. Abonne-toi.
