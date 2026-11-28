@@ -40,9 +40,15 @@ function faceTex2(expr, iris = '#5a3a22', talk = 0, lashes = false, fh = null) {
       c.save(); c.clip(); if (teeth) { c.fillStyle = '#fff'; c.fillRect(256 - wdt, 330, wdt * 2, 16); } if (tongue) { c.fillStyle = '#e06a7a'; c.beginPath(); c.ellipse(256, 340 + h, wdt * .6, h * .45, 0, 0, 7); c.fill(); } c.restore(); };
     const line = (pts, w_ = 12) => { c.strokeStyle = K; c.lineWidth = w_; c.lineCap = 'round'; c.beginPath(); c.moveTo(pts[0], pts[1]); c.quadraticCurveTo(pts[2], pts[3], pts[4], pts[5]); c.stroke(); };
     nose();
-    if (fh) { c.save(); c.globalAlpha = .22; c.fillStyle = fh; c.beginPath(); c.moveTo(150, 300); c.quadraticCurveTo(256, 520, 362, 300); c.quadraticCurveTo(256, 470, 150, 300); c.fill(); c.restore();
-      c.fillStyle = fh; c.beginPath(); c.moveTo(190, 352); c.quadraticCurveTo(204, 318, 256, 318); c.quadraticCurveTo(308, 318, 322, 352); c.quadraticCurveTo(298, 336, 256, 338); c.quadraticCurveTo(214, 336, 190, 352); c.fill();
-      const gg = c.createRadialGradient(256, 420, 6, 256, 420, 52); gg.addColorStop(0, fh); gg.addColorStop(.7, fh + 'cc'); gg.addColorStop(1, fh + '00'); c.fillStyle = gg; c.beginPath(); c.ellipse(256, 420, 52, 44, 0, 0, 7); c.fill(); c.fillStyle = fh; c.beginPath(); c.ellipse(256, 388, 9, 8, 0, 0, 7); c.fill(); }
+    if (fh) { const hairFill = (pathFn, n, a0 = .8) => { c.save(); pathFn(); c.clip(); c.globalAlpha = a0 * .55; c.fillStyle = fh; c.fillRect(0, 0, 512, 512); c.globalAlpha = a0;
+        const r = (k) => { const x = Math.sin(k * 12.9898) * 43758.5453; return x - Math.floor(x); }; c.strokeStyle = fh; c.lineCap = 'round'; for (let i = 0; i < n; i++) { const x = 150 + r(i) * 212, y = 290 + r(i + 99) * 200; c.lineWidth = 2 + r(i + 7) * 2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + (x - 256) * .04, y + 7 + r(i + 3) * 6); c.stroke(); } c.restore(); };
+      // barbe de 3 jours très légère (joues + mâchoire)
+      c.save(); c.globalAlpha = .1; c.fillStyle = fh; c.beginPath(); c.moveTo(140, 330); c.quadraticCurveTo(150, 470, 256, 486); c.quadraticCurveTo(362, 470, 372, 330); c.quadraticCurveTo(330, 400, 256, 404); c.quadraticCurveTo(182, 400, 140, 330); c.fill(); c.restore();
+      // moustache
+      hairFill(() => { c.beginPath(); c.moveTo(194, 350); c.quadraticCurveTo(206, 318, 256, 318); c.quadraticCurveTo(306, 318, 318, 350); c.quadraticCurveTo(300, 340, 256, 340); c.quadraticCurveTo(212, 340, 194, 350); c.closePath(); }, 260, .95);
+      // bouc : mouche + menton, raccordé aux coins de la bouche
+      hairFill(() => { c.beginPath(); c.moveTo(246, 378); c.quadraticCurveTo(256, 372, 266, 378); c.lineTo(264, 392); c.quadraticCurveTo(256, 396, 248, 392); c.closePath(); c.moveTo(222, 404); c.quadraticCurveTo(256, 396, 290, 404); c.quadraticCurveTo(300, 444, 284, 470); c.quadraticCurveTo(256, 486, 228, 470); c.quadraticCurveTo(212, 444, 222, 404); c.closePath(); }, 420, .85);
+      c.save(); c.globalAlpha = .35; c.strokeStyle = fh; c.lineWidth = 7; c.lineCap = 'round'; for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(256 + sx * 60, 352); c.quadraticCurveTo(256 + sx * 52, 392, 256 + sx * 34, 412); c.stroke(); } c.restore(); }
     const M = () => { if (talk) { mouthOpen(36, 18 + talk * 16); return true; } return false; };
     switch (expr) {
       case 'smile': eye(L, EY); eye(R, EY); brow(L, 150, 4); brow(R, 150, -4); blush(); if (!M()) line(fh ? [212, 350, 256, 374, 300, 350] : [206, 336, 256, 380, 306, 336]); break;
@@ -84,9 +90,16 @@ function makeChar2({ fh = null, skin = '#f2c79c', shirt = '#e8743b', pants = '#2
   if (hairStyle === 'long') { H(1.62, .5, 1.58, 0, 1.42, 0); H(1.62, 1.9, .45, 0, .6, -.62); for (const s of [-1, 1]) H(.3, 1.6, .9, s * .82, .55, -.1, .12); const f = H(1.3, .28, .3, -.12, 1.3, .66, .1); f.rotation.z = .2; }
   if (hairStyle === 'pony') { H(1.62, .5, 1.58, 0, 1.42, 0); H(1.6, .8, .42, 0, 1.06, -.62); const p = H(.5, 1.3, .5, 0, .8, -1.0, .2); p.rotation.x = .35; const tie = box(.56, .16, .56, mat('#ff5d8a'), .06); tie.position.set(0, 1.4, -.9); hairG.add(tie); }
   if (hairStyle === 'bun') { H(1.62, .5, 1.58, 0, 1.42, 0); H(1.6, .8, .42, 0, 1.06, -.62); const b = new THREE.Mesh(new THREE.SphereGeometry(.42, 14, 10), HM); b.position.set(0, 1.85, -.3); b.castShadow = true; hairG.add(b); }
-  if (hairStyle === 'fringe') { H(1.6, .42, 1.55, 0, 1.46, -.02); H(1.58, .75, .42, 0, 1.06, -.6); for (const s of [-1, 1]) H(.14, .55, 1.15, s * .79, 1.08, -.12, .06);
-    for (let i = 0; i < 6; i++) { const f = H(.3, .36, .14, -.62 + i * .25, 1.26 - Math.abs(i - 2.5) * .02, .72, .06); f.rotation.set(-.35, 0, -.28 + (i - 2.5) * .04); }
-    const top = H(1.45, .22, 1.3, .04, 1.68, .02, .12); top.rotation.z = -.05; }
+  if (hairStyle === 'fringe') {
+    HM.color.set('#ffffff'); HM.roughness = .7; HM.map = canvasTex(256, 256, (c) => { c.fillStyle = hair; c.fillRect(0, 0, 256, 256); const base = new THREE.Color(hair); for (let i = 0; i < 1400; i++) { const x = Math.random() * 256, y = Math.random() * 256, l = 8 + Math.random() * 18, k = Math.random();
+      c.strokeStyle = k > .55 ? '#' + base.clone().multiplyScalar(1.45).getHexString() : '#' + base.clone().multiplyScalar(.6).getHexString(); c.globalAlpha = .55; c.lineWidth = 1 + Math.random() * 1.5; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 4, y + l * .5, x + 2, y + l); c.stroke(); } });
+    const fadeM = new THREE.MeshStandardMaterial({ roughness: .9, transparent: true, map: canvasTex(64, 256, (c) => { const g = c.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, hair); g.addColorStop(.35, hair); g.addColorStop(.75, hair + '66'); g.addColorStop(1, hair + '00'); c.fillStyle = g; c.fillRect(0, 0, 64, 256); }) });
+    const F = (w_, h, d, x, y, z) => { const b = box(w_, h, d, fadeM, .08); b.position.set(x, y, z); hairG.add(b); return b; };
+    for (const sx of [-1, 1]) F(.06, .95, 1.3, sx * .77, .98, -.05); F(1.5, .95, .06, 0, .98, -.73);
+    H(1.56, .34, 1.5, 0, 1.47, -.02, .12); // dessus
+    const front = H(1.4, .3, .5, .04, 1.56, .5, .12); front.rotation.x = -.35; // volume de devant relevé
+    const swoop = H(.9, .2, .45, -.25, 1.66, .38, .08); swoop.rotation.set(-.4, 0, .12);
+    for (let i = 0; i < 4; i++) { const t_ = H(.32, .14, .28, -.5 + i * .33, 1.7 + (i % 2) * .03, .1 - (i % 2) * .2, .05); t_.rotation.set(-.2, i * .4, (i - 1.5) * .1); } }
   if (hairStyle === 'bald') { for (const s of [-1, 1]) { H(.22, .55, 1.1, s * .78, .95, -.1, .1); } H(1.4, .45, .3, 0, .95, -.68, .1); }
   if (extras) extras(root, head, hairG, S, hands);
   // compteur au-dessus de la tête (sprite toujours face caméra)
@@ -155,16 +168,16 @@ const silver = mat('#d8dce2', { metalness: .9, roughness: .22 });
 function makeMoi(withCap = false) { return makeChar2({ shirt: '#17171c', pants: '#22283a', hair: '#5e4028', hairStyle: 'fringe', iris: '#6f7d62', skin: '#f0c9a8', fh: '#7a5236', shoe: '#f4f4f4', scale: 1, extras: (root, head, hairG, S, hands) => {
   // t-shirt marine + imprimé doré entre les pans de la veste
   const tee = box(1.02, 1.95, .1, mat('#1d2840', { roughness: .9 }), .04); tee.position.set(0, 3, .5); root.add(tee);
-  const print = new THREE.Mesh(new THREE.PlaneGeometry(.85, .55), new THREE.MeshStandardMaterial({ transparent: true, map: canvasTex(340, 220, (c) => { c.fillStyle = '#d9b45a'; c.font = "900 92px 'Inter Display'"; c.textAlign = 'center'; c.fillText('GA', 170, 100); c.fillText('DE', 170, 190); c.font = "900 30px 'Inter Display'"; c.fillStyle = '#e8d6a8'; c.fillText('TOKYO', 170, 214); }) })); print.position.set(0, 3.35, .556); root.add(print);
+  const print = new THREE.Mesh(new THREE.PlaneGeometry(.85, .55), new THREE.MeshStandardMaterial({ transparent: true, map: canvasTex(340, 220, (c) => { c.fillStyle = '#ffd21a'; c.textAlign = 'center'; c.font = "900 62px 'Inter Display'"; c.fillText('GALLERY', 170, 78); c.fillText('DEPT.', 170, 146); c.font = "900 34px 'Inter Display'"; c.fillText('TOKYO', 170, 196); }) })); print.position.set(0, 3.35, .556); root.add(print);
   // pans de veste zippée + fermeture éclair argent
   for (const s of [-1, 1]) { const flap = box(.5, 1.98, .14, mat('#141418', { roughness: .75 }), .05); flap.position.set(s * .76, 3, .5); root.add(flap); const zip = box(.05, 1.9, .05, silver); zip.position.set(s * .5, 3, .58); root.add(zip); }
   const col = box(1.9, .3, 1.1, mat('#141418'), .1); col.position.set(0, 4.0, -.02); root.add(col);
   // chaîne + pendentif
   const chain = new THREE.Mesh(new THREE.TorusGeometry(.42, .022, 8, 40, Math.PI), silver); chain.rotation.set(Math.PI / 2 + .35, 0, Math.PI); chain.position.set(0, 3.78, .3); root.add(chain);
-  const pend = new THREE.Group(); pend.position.set(.34, 3.62, .6); pend.scale.setScalar(.55); root.add(pend); for (let i = 0; i < 4; i++) { const ar = box(.06, .22, .04, silver); ar.rotation.z = i * Math.PI / 2; ar.position.set(Math.sin(i * Math.PI / 2) * .1, Math.cos(i * Math.PI / 2) * .1, 0); pend.add(ar); }
+  const pend = new THREE.Group(); pend.position.set(-.3, 3.72, .6); pend.scale.setScalar(.5); root.add(pend); for (let i = 0; i < 4; i++) { const ar = box(.06, .22, .04, silver); ar.rotation.z = i * Math.PI / 2; ar.position.set(Math.sin(i * Math.PI / 2) * .1, Math.cos(i * Math.PI / 2) * .1, 0); pend.add(ar); }
   // montre (poignet gauche)
-  const watch = new THREE.Group(); hands[0].add(watch); watch.position.set(0, .22, 0); const band = box(.92, .16, .98, silver, .05); watch.add(band); const dial = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .06, 32), mat('#14203a', { metalness: .4, roughness: .2 })); dial.rotation.x = Math.PI / 2; dial.position.z = .5; watch.add(dial);
-  const bezel = new THREE.Mesh(new THREE.TorusGeometry(.18, .035, 10, 32), new THREE.MeshStandardMaterial({ color: '#25357a', metalness: .6, roughness: .25 })); bezel.position.z = .52; watch.add(bezel);
+  const watch = new THREE.Group(); hands[0].add(watch); watch.position.set(0, .22, 0); const band = box(.92, .16, .98, mat('#141414', { roughness: .55 }), .05); watch.add(band); const dial = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .06, 32), [mat('#0c0c0e'), new THREE.MeshStandardMaterial({ roughness: .2, metalness: .2, map: canvasTex(128, 128, (c) => { c.fillStyle = '#0b0b0d'; c.fillRect(0, 0, 128, 128); c.fillStyle = '#eaeaea'; for (let i = 0; i < 12; i++) { c.save(); c.translate(64, 64); c.rotate(i * Math.PI / 6); c.fillRect(-3, -56, 6, i % 3 ? 10 : 16); c.restore(); } c.strokeStyle = '#eaeaea'; c.lineWidth = 5; c.lineCap = 'round'; c.beginPath(); c.moveTo(64, 64); c.lineTo(64, 28); c.moveTo(64, 64); c.lineTo(92, 74); c.stroke(); }) }), mat('#0c0c0e')]); dial.geometry.rotateY(Math.PI); dial.rotation.x = Math.PI / 2; dial.position.z = .5; watch.add(dial);
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(.18, .035, 10, 32), new THREE.MeshStandardMaterial({ color: '#9aa0a8', metalness: .95, roughness: .2 })); bezel.position.z = .52; watch.add(bezel);
   // AirPod
   const pod = box(.12, .2, .12, mat('#ffffff', { roughness: .2 }), .05); pod.position.set(.84, .62, .08); head.add(pod);
   // casquette noire à l'envers (option)
@@ -175,6 +188,6 @@ const moi = makeMoi(false), moiCap = makeMoi(true);
 [moi, moiCap].forEach(c => { c.visible = false; c.userData.badge.visible = false; });
 window.shot = (view, expr = 'smile', cap = false) => { const ch = cap ? moiCap : moi; [moi, moiCap].forEach(c => c.visible = c === ch); ch.position.set(0, 0, 0); ch.rotation.y = 0;
   setFace2(ch, expr, false, 0); pose2(ch, 'idle', 1.3); if (view === 'wave') { pose2(ch, 'idle', 1); ch.userData.arms[1].rotation.set(0, 0, 2.6); ch.userData.elbows[1].rotation.z = .5; }
-  const v = { full: [V(0, 1.7, 9), V(0, 1.55, 0), 30], tq: [V(5, 2.2, 7.2), V(0, 1.5, 0), 30], face: [V(.9, 2.45, 3.2), V(0, 2.3, 0), 30], wave: [V(-2.4, 1.9, 8.4), V(0, 1.55, 0), 30] }[view];
+  const v = { full: [V(0, 1.7, 9), V(0, 1.55, 0), 30], tq: [V(5, 2.2, 7.2), V(0, 1.5, 0), 30], face: [V(.9, 2.45, 3.2), V(0, 2.3, 0), 30], watch: [V(-1.4, 1.0, 2.2), V(-.75, .95, .1), 26], wave: [V(-2.4, 1.9, 8.4), V(0, 1.55, 0), 30] }[view];
   camera.position.copy(v[0]); camera.lookAt(v[1]); camera.fov = v[2]; camera.updateProjectionMatrix(); renderer.render(scene, camera); return cv.toDataURL('image/jpeg', .93); };
 window.__ready = true;
