@@ -76,7 +76,7 @@ function update(t) {
     else { place2(pere, C_.x + 1.5, 2.45, C_.z - 3.0, 0); pose2(pere, 'lie', t); setFace2(pere, 'sleep', false, t); pere.updateMatrixWorld(true);
       const entered = t > w(382); const km = seg(t, w(382), w(385));
       place2(mere, C_.x + lerp(-5.5, -1.7, km), 0, C_.z + lerp(6, -1.4, km), entered ? 2.2 : Math.PI); setFace2(mere, t > w(385) ? 'cry' : 'worried', false, t); pose2(mere, entered && km < 1 ? 'walk' : t > w(386) ? 'sitReach' : 'idle', t); if (t > w(386)) { mere.position.y = .3; mere.rotation.y = Math.PI / 2; mere.position.x = C_.x - 1.75; mere.position.z = C_.z - 2.65; }
-      setBadge(mere, 4, 1); place2(malo, C_.x - 3.4, 0, C_.z - .6, Math.PI / 2); setFace2(malo, t > w(394) ? 'happy' : 'tender', false, t); pose2(malo, 'idle', t); malo.rotation.y = Math.PI / 2 - .2;
+      setBadge(mere, 4, 1); place2(malo, C_.x - 3.6, 0, C_.z + 1.4, 2.4); setFace2(malo, t > w(394) ? 'happy' : 'tender', false, t); pose2(malo, 'idle', t); malo.rotation.y = 2.4;
       const n2 = t > w(393) ? 2 : 1; freeBadge.visible = true; freeBadge.material.map = badgeTex(n2); const sp_ = t > w(393) ? 1 + .35 * Math.max(0, 1 - (t - w(393)) / .3) : 1; freeBadge.scale.set(sp_, .5 * sp_, 1); freeBadge.position.copy(pere.userData.hd.getWorldPosition(V(0, 0, 0))).add(V(0, .5, -1.05));
       const m2 = t > w(405) ? 2 : 1; setBadge(malo, m2, t > w(405) ? 1.3 + .4 * Math.max(0, 1 - (t - w(405)) / .35) : 1.1); } }
 
@@ -103,7 +103,7 @@ function buildShots() {
   A(157, 'malo', 'ms', 20, 'body'); A(162, 'malo', 'mcu', 0, null, 'push'); A(167, 'malo', 'cu', 10, null, 'static'); A(178, 'malo', 'ms', 0, 'body'); A(184, 'malo', 'mcu', 0, null, 'static'); A(198, 'malo', 'mcu', 0, null, 'push'); A(203, 'malo', 'cu', -10, null, 'static');
   A(232, `@${C_.x - 3},2.6,${C_.z + 1.8}`, 'grp', 40); A(236, 'malo', 'mcu', 0); A(243, `@${C_.x - 2.6},3.95,${C_.z - 4.5}`, 'ms', 20, null, 'push');
   A(316, 'malo', 'mcu', 10, null, 'static'); A(318, 'malo', 'mcu', 0, null, 'static'); A(320, `@${BD.x + 6},2.4,-4`, 'ms', 0, null, 'top'); A(322, 'pereHead', 'mcu', 0, null, 'topPush');
-  A(369, `@${P_.x},2.2,${P_.z + 2}`, 'fs', 0, null, 'push'); A(376, 'mere', 'ms', 0, 'body', 'push'); A(382, 'mere', 'ms', 30, 'body', 'push'); A(385, 'pereHead', 'mcu', 0, null, 'top'); A(394, 'malo', 'mcu', 0, null, 'push'); A(406, `@${C_.x - 1},2.6,${C_.z - 2.2}`, 'grp', 90, null, 'push');
+  A(369, `@${P_.x},2.2,${P_.z + 2}`, 'fs', 0, null, 'push'); A(376, 'mere', 'ms', 0, 'body', 'push'); A(382, 'mere', 'ms', 30, 'body', 'push'); A(385, 'pereHead', 'mcu', 0, null, 'top'); A(394, 'malo', 'mcu', 0, null, 'push'); A(406, 'malo', 'mcu', -15, null, 'push');
   S.sort((a, b) => a.t - b.t); S[0].t = 0; return S;
 }
 const sizeOf = ch => Math.max(.06, ch.scale.x * ch.userData.root.scale.y / .5);
