@@ -174,23 +174,33 @@ diffuseColor.rgb = C;`)
     liner.rotation.x = Math.PI / 2; liner.position.set(x, RW, s * .72); car.add(liner); }
 
   // ---- logos
-  function vwLogo(r) { const g = new THREE.Group(); const ring = M(new THREE.Mesh(new THREE.TorusGeometry(r, r * .085, 10, 48), chrome)); g.add(ring);
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(r * .95, 48), new THREE.MeshPhysicalMaterial({ color: '#050608', roughness: .1, clearcoat: 1 })); g.add(disc);
-    const vw = new THREE.Mesh(new THREE.PlaneGeometry(r * 1.9, r * 1.9), new THREE.MeshStandardMaterial({ transparent: true, metalness: 1, roughness: .12, color: '#e8ecf0', map: tex(256, 256, (c) => { c.strokeStyle = '#fff'; c.lineWidth = 15; c.lineJoin = 'miter'; c.lineCap = 'butt';
-      c.beginPath(); c.moveTo(58, 62); c.lineTo(104, 168); c.lineTo(128, 112); c.lineTo(152, 168); c.lineTo(198, 62); c.stroke();
-      c.beginPath(); c.moveTo(84, 154); c.lineTo(108, 212); c.lineTo(128, 168); c.lineTo(148, 212); c.lineTo(172, 154); c.stroke(); }) }));
-    vw.position.z = .002; g.add(vw); return g; }
-  const gtiTex = tex(256, 72, (c) => { c.font = "italic 900 54px Arial Black, Arial, sans-serif"; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 5; c.strokeStyle = '#e2e6ea'; c.strokeText('GTI', 128, 38); c.fillStyle = '#d1101c'; c.fillText('GTI', 128, 38); });
-  const badge = (w, h) => new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: gtiTex, transparent: true, metalness: .4, roughness: .25 }));
+  // logo VW (dessin plat 2019) : anneau + V + W aux traits parallèles, découpés dans le cercle
+  const vwTex = tex(1024, 1024, (c, W) => { const k = W / 2; c.translate(k, k); c.scale(k, -k);
+    c.fillStyle = '#07080b'; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#eef1f4'; c.lineWidth = .085; c.beginPath(); c.arc(0, 0, .955, 0, Math.PI * 2); c.stroke();
+    c.save(); c.beginPath(); c.arc(0, 0, .875, 0, Math.PI * 2); c.clip();
+    c.lineWidth = .135; c.lineJoin = 'miter'; c.miterLimit = 10; c.lineCap = 'butt'; const s = .42;
+    c.beginPath(); c.moveTo(-1.1 * s - .02, 1.2); c.lineTo(0, .1); c.lineTo(1.1 * s + .02, 1.2); c.stroke();
+    const yb = -.79, xb = (.12 + .79) * s * .78; c.beginPath(); c.moveTo(-xb - 1.6 * s, yb + 1.6); c.lineTo(-xb, yb); c.lineTo(0, -.13); c.lineTo(xb, yb); c.lineTo(xb + 1.6 * s, yb + 1.6); c.stroke();
+    c.restore(); });
+  function vwLogo(r) { const g = new THREE.Group();
+    const face = new THREE.Mesh(new THREE.CircleGeometry(r, 64), new THREE.MeshPhysicalMaterial({ map: vwTex, metalness: .55, roughness: .16, clearcoat: 1 })); g.add(face);
+    const rim = M(new THREE.Mesh(new THREE.TorusGeometry(r * .995, r * .03, 8, 64), chrome)); g.add(rim); return g; }
+  // sigle GTI : lettres dessinées au trait (rouge, liseré chrome), en italique
+  const gtiTex = tex(512, 160, (c) => { c.setTransform(1, 0, -.22, 1, 30, 0);
+    const path = () => { c.beginPath(); c.moveTo(178, 50); c.lineTo(178, 42); c.quadraticCurveTo(178, 28, 160, 28); c.lineTo(108, 28); c.quadraticCurveTo(88, 28, 88, 48); c.lineTo(88, 112); c.quadraticCurveTo(88, 132, 108, 132); c.lineTo(160, 132); c.quadraticCurveTo(178, 132, 178, 116); c.lineTo(178, 84); c.lineTo(138, 84);
+      c.moveTo(212, 28); c.lineTo(322, 28); c.moveTo(267, 28); c.lineTo(267, 134); c.moveTo(366, 28); c.lineTo(366, 134); };
+    c.lineCap = 'butt'; c.lineJoin = 'round'; path(); c.strokeStyle = '#dfe3e8'; c.lineWidth = 34; c.stroke(); path(); c.strokeStyle = '#d0101b'; c.lineWidth = 20; c.stroke(); });
+  const badge = (w, h) => new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: gtiTex, transparent: true, metalness: .3, roughness: .3, alphaTest: .05 }));
   // logo VW avant : posé sur le nez incliné
   { let a = 3.9, b = L; for (let k = 0; k < 40; k++) { const m = (a + b) / 2; top(m) > .758 ? a = m : b = m; } const xn = a, sl = (top(xn + .002) - top(xn - .002)) / .004;
     const hold = new THREE.Group(); hold.position.set(xn + X0 + .012, .758, 0); car.add(hold);
     const n = new THREE.Vector2(-sl, 1).normalize(); hold.rotation.z = Math.atan2(n.y, n.x);
     const lg = vwLogo(.068); lg.rotation.y = Math.PI / 2; hold.add(lg);
-    const gb = badge(.12, .034); gb.rotation.y = Math.PI / 2; gb.position.set(.003, -.008, .2); hold.add(gb); }
+    const gb = badge(.15, .047); gb.rotation.y = Math.PI / 2; gb.position.set(.003, -.008, .2); hold.add(gb); }
   // logo VW arrière + GTI sous le feu gauche
   const vwR = vwLogo(.072); vwR.position.set(X0 - .004, .9, 0); vwR.rotation.y = -Math.PI / 2; car.add(vwR);
-  const gR = badge(.13, .036); gR.position.set(X0 - .003, .815, -.5); gR.rotation.y = -Math.PI / 2; car.add(gR);
+  const gR = badge(.15, .047); gR.position.set(X0 - .003, .815, -.5); gR.rotation.y = -Math.PI / 2; car.add(gR);
 
   // ---- becquet de toit + 3e feu stop, essuie-glace, antenne requin
   { const sp = new THREE.Shape(); sp.moveTo(.50, 1.428); sp.lineTo(.36, 1.418); sp.lineTo(.17, 1.37); sp.lineTo(.155, 1.345); sp.lineTo(.2, 1.343); sp.lineTo(.40, 1.392); sp.closePath();

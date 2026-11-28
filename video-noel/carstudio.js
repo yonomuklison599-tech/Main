@@ -11,5 +11,5 @@ const key = new THREE.DirectionalLight(0xfff1e0, 2.4); key.position.set(4, 7, 5)
 const floor = new THREE.Mesh(new THREE.CircleGeometry(12, 64), new THREE.MeshStandardMaterial({ color: '#6a6c70', roughness: .9 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
 const car = buildPolo(THREE, { RoundedBoxGeometry }); scene.add(car);
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-window.shot = (v) => { const P = { tqf: [V(6.2, 2.1, 5.6), V(.1, .65, 0), 30], side: [V(0, .9, 10.5), V(0, .72, 0), 28], tqr: [V(-6.2, 2.2, 5.2), V(-.1, .72, 0), 30], front: [V(4.4, 1.15, 1.9), V(1.8, .62, .15), 32] }[v]; camera.position.copy(P[0]); camera.lookAt(P[1]); camera.fov = P[2]; camera.updateProjectionMatrix(); renderer.render(scene, camera); return cv.toDataURL('image/jpeg', .93); };
+window.shot = (v) => { const P = { tqf: [V(6.2, 2.1, 5.6), V(.1, .65, 0), 30], side: [V(0, .9, 10.5), V(0, .72, 0), 28], tqr: [V(-6.2, 2.2, 5.2), V(-.1, .72, 0), 30], front: [V(4.4, 1.15, 1.9), V(1.8, .62, .15), 32], logoF: [V(3.0, .86, .45), V(2.0, .74, .08), 24], logoR: [V(-3.0, .95, -.55), V(-2.03, .85, -.22), 26] }[v]; camera.position.copy(P[0]); camera.lookAt(P[1]); camera.fov = P[2]; camera.updateProjectionMatrix(); renderer.render(scene, camera); return cv.toDataURL('image/jpeg', .93); };
 window.__ready = true;
