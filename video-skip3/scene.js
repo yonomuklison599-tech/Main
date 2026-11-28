@@ -554,8 +554,8 @@ function tCard(i, x, y, s, hl) { const lab = TC[((i % NT) + NT) % NT]; g.save();
 function rouT(t) { const TL = we(17) + .75, D = (5 * NT + TT) * SPACING; return { p: D * (1 - Math.pow(1 - clamp(t / TL), 4)), TL }; }
 function ecg(y, amp, a, t) { g.beginPath(); for (let x = 0; x <= W; x += 6) { const ph = ((x / W) * 3 + t * .8) % 1; g.lineTo(x, y - (Math.abs(ph - .5) < .02 ? amp : Math.abs(ph - .53) < .02 ? -amp * .4 : 0)); } g.lineWidth = 7; g.strokeStyle = `rgba(80,255,140,${a})`; g.shadowColor = '#50ff8c'; g.shadowBlur = 18; g.stroke(); g.shadowBlur = 0; }
 function bed(x, y, s, t, who = 1) { g.save(); g.translate(x, y); g.scale(s, s); rr(-360, -60, 720, 120, 20); fillStroke('#dfe6ea', 7); rr(-380, -160, 40, 260, 10); fillStroke('#9aa8b0', 6); rr(340, -100, 40, 200, 10); fillStroke('#9aa8b0', 6);
-  if (who) { g.save(); g.translate(-210, -120); g.rotate(-Math.PI / 2 + .05); g.scale(.55, .55); g.translate(0, 470); circ(0, -470, 112); fillStroke(CHAR.toi.skin); face(CHAR.toi, t, { expr: 'neutral', blink: 0 }); hairFront(CHAR.toi); g.restore(); }
-  rr(-260, -110, 600, 90, 40); fillStroke('#bfe0f0', 7); g.restore(); }
+  rr(-330, -150, 200, 90, 30); fillStroke('#fff', 6); rr(-200, -110, 540, 90, 40); fillStroke('#bfe0f0', 7);
+  if (who) { g.save(); g.translate(-210, -190); g.scale(.55, .55); circ(0, 0, 112); fillStroke(CHAR.toi.skin); face(CHAR.toi, t, { expr: 'neutral', blink: 0 }); hairFront(CHAR.toi); g.restore(); } g.restore(); }
 
 function pageBook(x, y, s, t, k) { g.save(); g.translate(x, y); g.scale(s, s); rr(-200, -130, 400, 260, 10); fillStroke('#c96b3a', 7); rr(-185, -118, 180, 236, 4); fillStroke('#fdf6e3', 4); rr(5, -118, 180, 236, 4); fillStroke('#fdf6e3', 4);
   for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(-170, -90 + i * 34, 150, 6); g.fillRect(20, -90 + i * 34, 150, 6); } const f = (t * 1.2) % 1; g.save(); g.scale(Math.cos(f * Math.PI), 1); rr(0, -118, 185, 236, 4); fillStroke('#fff6e6', 4); g.restore(); g.restore(); }
@@ -576,7 +576,15 @@ SC.push({ i: 0, cam: [[0, 1, 540, 960], [14, 1.08, 540, 940], [18, 1.0, 540, 960
 SC.push({ i: 22, cam: [[22, 1.2, 400, 1150], [27, 1.0, 540, 1000], [32, 1.0, 540, 960], [35, 1.1, 540, 900]], draw(t) {
   if (t < w(32)) { sky('#f2f5f8', '#d6dee6'); glow(W / 2, 200, 700, 'rgba(255,255,255,1)'); floor(1450, '#c8d0d8'); bed(W / 2 + 40, 1260, 1.0, t, 1); if (t > w(27)) stamp("C'EST TOI", W / 2, 520, 110, '#2a64d8', w(27), t); return; }
   sky('#ffcf9a', '#f3a46b'); floor(1200, '#3a3a48'); for (let i = 0; i < 5; i++) { g.fillStyle = '#fff'; g.fillRect(i * 260 - 40, 1400, 150, 16); }
-  const k = seg(t, w(32), w(34)); g.save(); g.translate(lerp(-200, 520, k), 1250); g.rotate(k > .9 ? (k - .9) * 8 : 0); rr(-120, -60, 240, 70, 30); fillStroke('#2ecc71', 7); circ(-90, 30, 40); fillStroke('#222', 6); circ(90, 30, 40); fillStroke('#222', 6); g.restore();
+  const k = seg(t, w(32), w(34)); const crash = t > w(34); if (!crash) perso('toi', lerp(-260, 540, k) - 60, 1300, .55, t, { expr: 'happy', arms: 'point' }); g.save(); g.translate(lerp(-260, 540, k), 1330); g.rotate(crash ? Math.min(1.2, (t - w(34)) * 4) : Math.sin(t * 20) * .02);
+  const wheel = (x) => { circ(x, 0, 62); fillStroke('#1d1d1d', 7); circ(x, 0, 30); fillStroke('#9aa4b0', 5); circ(x, 0, 8); fillStroke('#555', 3); };
+  wheel(-150); wheel(170);
+  g.beginPath(); g.moveTo(-210, -30); g.quadraticCurveTo(-200, -120, -90, -130); g.lineTo(40, -130); g.quadraticCurveTo(60, -60, 120, -50); g.lineTo(120, -10); g.lineTo(-210, -10); g.closePath(); fillStroke('#2ecc71', 7);
+  rr(-170, -165, 170, 40, 18); fillStroke('#222', 6);
+  g.beginPath(); g.moveTo(120, -40); g.lineTo(165, -250); g.lineTo(215, -250); g.lineTo(200, -40); g.closePath(); fillStroke('#27ae60', 7);
+  g.lineWidth = 12; g.strokeStyle = OUT; g.beginPath(); g.moveTo(170, 0); g.lineTo(150, -260); g.stroke(); g.lineWidth = 14; g.beginPath(); g.moveTo(110, -270); g.lineTo(220, -270); g.stroke();
+  circ(225, -200, 18); fillStroke('#ffe9a0', 5); g.restore();
+  if (crash) { g.save(); g.translate(540 + (t - w(34)) * 600, 1100 - (t - w(34)) * 300 + (t - w(34)) ** 2 * 900); g.rotate((t - w(34)) * 6); perso('toi', 0, 0, .55, t, { expr: 'shock' }); g.restore(); }
   if (t > w(34)) { stamp('CRASH', W / 2, 800, 140, '#e8333a', w(34), t); if (t > w(35)) { card(10, W / 2, 1100 - 400 * eOut(seg(t, w(35), w(38))), .8 * popIn(w(36), t), 1, t); pill('LE MÊME JOUR', W / 2, 330, 56, '#111', '#fff', { sc: popIn(w(36), t) }); } }
 }});
 // 2. LE COMA
